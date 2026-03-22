@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/timholmquist/claude-code-factory/internal/analyze"
 	"github.com/timholmquist/claude-code-factory/internal/config"
 	"github.com/timholmquist/claude-code-factory/internal/gather"
+	"github.com/timholmquist/claude-code-factory/internal/mirror"
 	"github.com/timholmquist/claude-code-factory/internal/registry"
 )
 
@@ -114,8 +116,18 @@ func mirrorCmd() *cobra.Command {
 		Use:   "mirror",
 		Short: "Push built projects to GitHub",
 		Long:  "mirror pushes locally built projects to remote GitHub repositories.",
-		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("mirror: not implemented")
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cfg := config.Load()
+
+			db, err := registry.Open(filepath.Join(cfg.DataDir, "registry.db"))
+			if err != nil {
+				return fmt.Errorf("db: %w", err)
+			}
+			defer db.Close()
+			reg := &registry.Registry{DB: db}
+
+			delay := time.Duration(cfg.MirrorDelaySec) * time.Second
+			return mirror.Run(context.Background(), reg, cfg.GitDir, cfg.GitHubUser, cfg.GitHubToken, delay)
 		},
 	}
 }
