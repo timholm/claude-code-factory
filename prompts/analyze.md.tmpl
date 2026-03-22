@@ -1,0 +1,64 @@
+# Claude Code Factory — Analysis Request
+
+You are analyzing {{len .Items}} gathered items (GitHub issues, Hacker News threads, Reddit posts) to identify the most valuable software problems worth solving with small, focused tools.
+
+## Items
+
+{{range $i, $item := .Items -}}
+### Item {{add $i 1}}
+- **Source:** {{$item.Source}}
+- **Title:** {{$item.Title}}
+- **Score:** {{$item.Score}}
+- **URL:** {{$item.URL}}
+
+{{$item.Body}}
+
+---
+{{end}}
+
+## Your Task
+
+Identify the top 30 distinct problems from the items above that are worth solving with a small, focused software tool.
+
+For each problem, produce a spec describing the solution to build.
+
+## Rules
+
+- Each spec must solve **one problem** with **one focused solution** — no sprawling multi-purpose apps
+- Prefer solutions that are: Claude hooks, MCP servers, CLI tools, or Claude skills/plugins
+- Keep solutions small: under **200 lines** of code estimated total
+- Solutions must be self-contained and ship as a single repository
+- Use the language best suited to the problem (Go, Python, TypeScript, Bash, etc.)
+- Do not duplicate problems — each spec must address a distinct pain point
+- Source URL must come from the item that inspired the spec
+
+## Output Format
+
+Return **only** a JSON array with exactly 30 objects. No preamble, no explanation, no markdown outside the JSON.
+
+Each object must have these fields:
+
+```json
+[
+  {
+    "name": "short-kebab-case-repo-name",
+    "problem": "One sentence describing the pain point users face.",
+    "source_url": "https://exact-url-from-items-above",
+    "solution": "One or two sentences describing exactly what the tool does and how.",
+    "language": "go",
+    "files": ["main.go", "README.md"],
+    "estimated_lines": 120
+  }
+]
+```
+
+Field constraints:
+- `name`: lowercase kebab-case, no spaces, suitable as a GitHub repo name
+- `problem`: plain English, one sentence, ends with a period
+- `source_url`: must be a URL present in the items above
+- `solution`: plain English, 1-2 sentences, ends with a period
+- `language`: one of: go, python, typescript, bash, rust
+- `files`: list of file paths that will exist in the repo root
+- `estimated_lines`: integer, must be under 200
+
+Return the JSON array now.
