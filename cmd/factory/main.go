@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/spf13/cobra"
+	"github.com/timholmquist/claude-code-factory/internal/analyze"
 	"github.com/timholmquist/claude-code-factory/internal/config"
 	"github.com/timholmquist/claude-code-factory/internal/gather"
 	"github.com/timholmquist/claude-code-factory/internal/registry"
@@ -70,10 +71,31 @@ func analyzeCmd() *cobra.Command {
 		Use:   "analyze",
 		Short: "Analyze gathered data using Claude",
 		Long:  "analyze calls Claude to process gathered data and produce structured output.",
-		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("analyze: not implemented")
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cfg := config.Load()
+
+			db, err := registry.Open(filepath.Join(cfg.DataDir, "registry.db"))
+			if err != nil {
+				return fmt.Errorf("db: %w", err)
+			}
+			defer db.Close()
+			reg := &registry.Registry{DB: db}
+
+			promptsDir := resolvePromptsDir()
+
+			return analyze.Run(context.Background(), reg, cfg.ClaudeBinary, promptsDir)
 		},
 	}
+}
+
+// resolvePromptsDir returns the path to the prompts directory. It prefers a
+// local ./prompts directory (for development) and falls back to the production
+// path /etc/factory/prompts.
+func resolvePromptsDir() string {
+	if _, err := os.Stat("prompts"); err == nil {
+		return "prompts"
+	}
+	return "/etc/factory/prompts"
 }
 
 func buildCmd() *cobra.Command {
