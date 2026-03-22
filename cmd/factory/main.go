@@ -1,10 +1,15 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
+	"github.com/timholmquist/claude-code-factory/internal/config"
+	"github.com/timholmquist/claude-code-factory/internal/gather"
+	"github.com/timholmquist/claude-code-factory/internal/registry"
 )
 
 func main() {
@@ -34,8 +39,28 @@ func gatherCmd() *cobra.Command {
 		Use:   "gather",
 		Short: "Scrape data from the web",
 		Long:  "gather scrapes data sources and stores them for analysis.",
-		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("gather: not implemented")
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cfg := config.Load()
+
+			db, err := registry.Open(filepath.Join(cfg.DataDir, "registry.db"))
+			if err != nil {
+				return fmt.Errorf("db: %w", err)
+			}
+			defer db.Close()
+			reg := &registry.Registry{DB: db}
+
+			scrapers := []gather.Scraper{
+				&gather.GitHubIssuesScraper{Token: cfg.GitHubToken},
+				&gather.HNScraper{},
+				&gather.RedditScraper{UserAgent: cfg.RedditAgent},
+			}
+
+			count, err := gather.Run(context.Background(), reg, scrapers)
+			if err != nil {
+				return err
+			}
+			fmt.Printf("gathered %d items\n", count)
+			return nil
 		},
 	}
 }
