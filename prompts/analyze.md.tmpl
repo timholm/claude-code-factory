@@ -1,64 +1,80 @@
-# Claude Code Factory — Analysis Request
+# Innovation Factory — Daily Analysis
 
-You are analyzing {{len .Items}} gathered items (GitHub issues, Hacker News threads, Reddit posts) to identify the most valuable software problems worth solving with small, focused tools.
+You are the R&D brain of an autonomous software factory that builds next-generation AI tools and infrastructure.
 
-## Items
+Your job: identify the most innovative, cutting-edge opportunities in AI/ML and design tools that put this GitHub profile at the forefront of technology innovation.
+
+## Today's Intelligence ({{len .Items}} signals)
 
 {{range $i, $item := .Items -}}
-### Item {{add $i 1}}
-- **Source:** {{$item.Source}}
-- **Title:** {{$item.Title}}
-- **Score:** {{$item.Score}}
-- **URL:** {{$item.URL}}
-
-{{$item.Body}}
+### [{{$item.Source}}] {{$item.Title}} (score: {{$item.Score}})
+URL: {{$item.URL}}
+{{if $item.Body}}{{$item.Body}}{{end}}
 
 ---
 {{end}}
 
-## Your Task
+## What To Look For
 
-Identify the top 30 distinct problems from the items above that are worth solving with a small, focused software tool.
+**Emerging technology categories:**
+- AI agent frameworks, protocols, and orchestration systems
+- Model Context Protocol (MCP) — new server types, tooling, infrastructure
+- Local/edge AI — running models on devices, Ollama integrations, quantization tools
+- Multimodal AI — vision + code, audio + text, cross-modal reasoning
+- AI-native developer tools — things that couldn't exist without LLMs
+- Autonomous systems — self-healing infra, auto-scaling, self-improving agents
+- AI security — prompt injection defense, model output validation, guardrails
+- AI for science — bioinformatics, materials discovery, climate modeling tools
+- Novel interfaces — TUI/CLI tools that use AI in new ways, conversational DevOps
+- AI infrastructure — serving, caching, routing, cost optimization for LLM workloads
+- Agentic workflows — multi-agent coordination, task decomposition, planning systems
+- AI + hardware — IoT, embedded systems, SDR, robotics, industrial automation
 
-For each problem, produce a spec describing the solution to build.
+**What makes a good project:**
+- Implements a concept from a recent research paper as a usable tool
+- Builds something a startup just launched, but as open-source
+- Combines two technologies in a way nobody has yet
+- Solves a problem that only exists because AI is becoming mainstream
+- Creates infrastructure that future AI applications will need
 
-## Rules
+**What to AVOID:**
+- Simple wrappers around existing APIs
+- Yet another chatbot or AI assistant
+- Prompt template collections
+- Things that already have 10+ implementations on GitHub
 
-- Each spec must solve **one problem** with **one focused solution** — no sprawling multi-purpose apps
-- Prefer solutions that are: Claude hooks, MCP servers, CLI tools, or Claude skills/plugins
-- Keep solutions small: under **200 lines** of code estimated total
-- Solutions must be self-contained and ship as a single repository
-- Use the language best suited to the problem (Go, Python, TypeScript, Bash, etc.)
-- Do not duplicate problems — each spec must address a distinct pain point
-- Source URL must come from the item that inspired the spec
+## Instructions
+
+From today's signals, identify the top 30 most innovative projects worth building.
+Each should be buildable in under 300 lines of code as an MVP.
+
+Think like a venture capitalist: "Would I fund this? Is this where the market is going?"
 
 ## Output Format
 
-Return **only** a JSON array with exactly 30 objects. No preamble, no explanation, no markdown outside the JSON.
-
-Each object must have these fields:
+Return **only** a JSON array with exactly 30 objects. No preamble, no explanation.
 
 ```json
 [
   {
     "name": "short-kebab-case-repo-name",
-    "problem": "One sentence describing the pain point users face.",
+    "problem": "What innovation gap this fills — one sentence.",
     "source_url": "https://exact-url-from-items-above",
-    "solution": "One or two sentences describing exactly what the tool does and how.",
+    "solution": "2-3 sentences: what to build and why it's innovative.",
     "language": "go",
-    "files": ["main.go", "README.md"],
-    "estimated_lines": 120
+    "files": ["main.go", "README.md", "main_test.go"],
+    "estimated_lines": 200
   }
 ]
 ```
 
 Field constraints:
-- `name`: lowercase kebab-case, no spaces, suitable as a GitHub repo name
-- `problem`: plain English, one sentence, ends with a period
+- `name`: lowercase kebab-case, suitable as a GitHub repo name
+- `problem`: plain English, one sentence
 - `source_url`: must be a URL present in the items above
-- `solution`: plain English, 1-2 sentences, ends with a period
+- `solution`: plain English, 1-3 sentences
 - `language`: one of: go, python, typescript, bash, rust
-- `files`: list of file paths that will exist in the repo root
-- `estimated_lines`: integer, must be under 200
+- `files`: list of file paths in the repo root
+- `estimated_lines`: integer, under 300
 
 Return the JSON array now.
