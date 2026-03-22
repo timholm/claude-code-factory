@@ -1,0 +1,127 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: factory-gather
+  namespace: factory
+spec:
+  schedule: "0 * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: factory
+              image: ghcr.io/timholmquist/claude-code-factory:latest
+              args: ["gather"]
+              envFrom:
+                - secretRef:
+                    name: factory-secrets
+              volumeMounts:
+                - name: factory-data
+                  mountPath: /srv/factory
+          volumes:
+            - name: factory-data
+              persistentVolumeClaim:
+                claimName: factory-data
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: factory-analyze
+  namespace: factory
+spec:
+  schedule: "0 6 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          nodeSelector:
+            kubernetes.io/hostname: cm3588-plus
+          containers:
+            - name: factory
+              image: ghcr.io/timholmquist/claude-code-factory:latest
+              args: ["analyze"]
+              envFrom:
+                - secretRef:
+                    name: factory-secrets
+              volumeMounts:
+                - name: factory-data
+                  mountPath: /srv/factory
+                - name: git-repos
+                  mountPath: /srv/git
+          volumes:
+            - name: factory-data
+              persistentVolumeClaim:
+                claimName: factory-data
+            - name: git-repos
+              persistentVolumeClaim:
+                claimName: git-repos
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: factory-build
+  namespace: factory
+spec:
+  schedule: "30 6 * * *"
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 57600
+      template:
+        spec:
+          restartPolicy: OnFailure
+          nodeSelector:
+            kubernetes.io/hostname: cm3588-plus
+          containers:
+            - name: factory
+              image: ghcr.io/timholmquist/claude-code-factory:latest
+              args: ["build"]
+              envFrom:
+                - secretRef:
+                    name: factory-secrets
+              volumeMounts:
+                - name: factory-data
+                  mountPath: /srv/factory
+                - name: git-repos
+                  mountPath: /srv/git
+                - name: tmp-builds
+                  mountPath: /tmp/factory-build
+          volumes:
+            - name: factory-data
+              persistentVolumeClaim:
+                claimName: factory-data
+            - name: git-repos
+              persistentVolumeClaim:
+                claimName: git-repos
+            - name: tmp-builds
+              emptyDir:
+                sizeLimit: 10Gi
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: factory-mirror
+  namespace: factory
+spec:
+  schedule: "0 23 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: factory
+              image: ghcr.io/timholmquist/claude-code-factory:latest
+              args: ["mirror"]
+              envFrom:
+                - secretRef:
+                    name: factory-secrets
+              volumeMounts:
+                - name: git-repos
+                  mountPath: /srv/git
+          volumes:
+            - name: git-repos
+              persistentVolumeClaim:
+                claimName: git-repos

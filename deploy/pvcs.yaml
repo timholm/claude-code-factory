@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: factory-data
+  namespace: factory
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: nfs-zfs
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: git-repos
+  namespace: factory
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs-zfs
+  resources:
+    requests:
+      storage: 50Gi
