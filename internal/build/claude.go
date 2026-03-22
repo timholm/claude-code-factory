@@ -20,7 +20,7 @@ type ClaudeResult struct {
 // InvokeClaude runs Claude headlessly against the SPEC.md found in workDir.
 // It sets CLAUDE_CODE_DISABLE_AUTO_MEMORY=1 and uses --output-format text.
 // Rate-limit detection checks for the strings "usage limit", "rate limit", or "capacity".
-func InvokeClaude(ctx context.Context, binary, workDir string) (*ClaudeResult, error) {
+func InvokeClaude(ctx context.Context, binary, workDir string, estimatedLines int) (*ClaudeResult, error) {
 	specPath := filepath.Join(workDir, "SPEC.md")
 	specBytes, err := os.ReadFile(specPath)
 	if err != nil {
@@ -28,10 +28,19 @@ func InvokeClaude(ctx context.Context, binary, workDir string) (*ClaudeResult, e
 	}
 	specContent := string(specBytes)
 
+	// Fewer turns for small projects, more for large ones
+	maxTurns := "6"
+	if estimatedLines > 100 {
+		maxTurns = "10"
+	}
+	if estimatedLines > 200 {
+		maxTurns = "15"
+	}
+
 	args := []string{
 		"-p", specContent,
 		"--permission-mode", "acceptEdits",
-		"--max-turns", "15",
+		"--max-turns", maxTurns,
 		"--output-format", "text",
 	}
 

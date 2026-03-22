@@ -15,7 +15,7 @@ import (
 const (
 	buildBaseDir   = "/tmp/factory-build"
 	rateLimitSleep = 30 * time.Minute
-	maxAttempts    = 3
+	maxAttempts    = 1 // fail fast, move on, come back later
 )
 
 // Run is the main build loop. It dequeues items from the registry, scaffolds
@@ -62,7 +62,7 @@ func processSpec(ctx context.Context, reg *registry.Registry, spec *registry.Bui
 	}
 
 	// Invoke Claude — with retry on rate limit.
-	result, err := invokeWithRateLimitRetry(ctx, claudeBinary, workDir)
+	result, err := invokeWithRateLimitRetry(ctx, claudeBinary, workDir, spec.EstimatedLines)
 	if err != nil {
 		return handleFailure(reg, spec, fmt.Errorf("claude: %w", err))
 	}
@@ -109,9 +109,9 @@ func processSpec(ctx context.Context, reg *registry.Registry, spec *registry.Bui
 }
 
 // invokeWithRateLimitRetry calls InvokeClaude, sleeping and retrying if rate-limited.
-func invokeWithRateLimitRetry(ctx context.Context, binary, workDir string) (*ClaudeResult, error) {
+func invokeWithRateLimitRetry(ctx context.Context, binary, workDir string, estimatedLines int) (*ClaudeResult, error) {
 	for {
-		result, err := InvokeClaude(ctx, binary, workDir)
+		result, err := InvokeClaude(ctx, binary, workDir, estimatedLines)
 		if err != nil {
 			return nil, err
 		}

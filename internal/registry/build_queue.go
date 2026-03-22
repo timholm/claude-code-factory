@@ -50,7 +50,7 @@ func (r *Registry) DequeueNext() (*BuildSpec, error) {
 		        estimated_lines, status, attempts, COALESCE(error_log, '')
 		 FROM build_queue
 		 WHERE status = 'queued'
-		 ORDER BY id ASC
+		 ORDER BY estimated_lines ASC, id ASC
 		 LIMIT 1`,
 	).Scan(
 		&s.ID, &s.Name, &s.Problem, &s.SourceURL, &s.Solution, &s.Language,
