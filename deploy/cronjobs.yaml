@@ -39,10 +39,23 @@ spec:
           restartPolicy: OnFailure
           nodeSelector:
             kubernetes.io/hostname: cm3588-plus
+          initContainers:
+            - name: setup-claude-auth
+              image: busybox
+              command: ["sh", "-c", "mkdir -p /home/factory/.claude && cp /tmp/claude-creds/credentials.json /home/factory/.claude/.credentials.json && chmod 600 /home/factory/.claude/.credentials.json"]
+              volumeMounts:
+                - name: claude-creds
+                  mountPath: /tmp/claude-creds
+                  readOnly: true
+                - name: claude-home
+                  mountPath: /home/factory/.claude
           containers:
             - name: factory
               image: ghcr.io/timholmquist/claude-code-factory:latest
               args: ["analyze"]
+              env:
+                - name: HOME
+                  value: /home/factory
               envFrom:
                 - secretRef:
                     name: factory-secrets
@@ -51,6 +64,8 @@ spec:
                   mountPath: /srv/factory
                 - name: git-repos
                   mountPath: /srv/git
+                - name: claude-home
+                  mountPath: /home/factory/.claude
           volumes:
             - name: factory-data
               persistentVolumeClaim:
@@ -58,6 +73,11 @@ spec:
             - name: git-repos
               persistentVolumeClaim:
                 claimName: git-repos
+            - name: claude-creds
+              secret:
+                secretName: claude-credentials
+            - name: claude-home
+              emptyDir: {}
 ---
 apiVersion: batch/v1
 kind: CronJob
@@ -74,10 +94,23 @@ spec:
           restartPolicy: OnFailure
           nodeSelector:
             kubernetes.io/hostname: cm3588-plus
+          initContainers:
+            - name: setup-claude-auth
+              image: busybox
+              command: ["sh", "-c", "mkdir -p /home/factory/.claude && cp /tmp/claude-creds/credentials.json /home/factory/.claude/.credentials.json && chmod 600 /home/factory/.claude/.credentials.json"]
+              volumeMounts:
+                - name: claude-creds
+                  mountPath: /tmp/claude-creds
+                  readOnly: true
+                - name: claude-home
+                  mountPath: /home/factory/.claude
           containers:
             - name: factory
               image: ghcr.io/timholmquist/claude-code-factory:latest
               args: ["build"]
+              env:
+                - name: HOME
+                  value: /home/factory
               envFrom:
                 - secretRef:
                     name: factory-secrets
@@ -88,6 +121,8 @@ spec:
                   mountPath: /srv/git
                 - name: tmp-builds
                   mountPath: /tmp/factory-build
+                - name: claude-home
+                  mountPath: /home/factory/.claude
           volumes:
             - name: factory-data
               persistentVolumeClaim:
@@ -98,6 +133,11 @@ spec:
             - name: tmp-builds
               emptyDir:
                 sizeLimit: 10Gi
+            - name: claude-creds
+              secret:
+                secretName: claude-credentials
+            - name: claude-home
+              emptyDir: {}
 ---
 apiVersion: batch/v1
 kind: CronJob
