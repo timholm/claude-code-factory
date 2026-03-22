@@ -9,6 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/timholmquist/claude-code-factory/internal/analyze"
+	"github.com/timholmquist/claude-code-factory/internal/build"
 	"github.com/timholmquist/claude-code-factory/internal/config"
 	"github.com/timholmquist/claude-code-factory/internal/gather"
 	"github.com/timholmquist/claude-code-factory/internal/mirror"
@@ -104,9 +105,18 @@ func buildCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "build",
 		Short: "Build software projects from analysis output",
-		Long:  "build takes analyzed data and scaffolds or builds software projects.",
-		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Println("build: not implemented")
+		Long:  "build dequeues specs, scaffolds boilerplate, invokes Claude, and ships bare git repos.",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cfg := config.Load()
+
+			db, err := registry.Open(filepath.Join(cfg.DataDir, "registry.db"))
+			if err != nil {
+				return fmt.Errorf("db: %w", err)
+			}
+			defer db.Close()
+			reg := &registry.Registry{DB: db}
+
+			return build.Run(context.Background(), reg, cfg.ClaudeBinary, cfg.GitDir, cfg.GitHubUser)
 		},
 	}
 }
