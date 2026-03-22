@@ -10,9 +10,11 @@ spec:
       template:
         spec:
           restartPolicy: OnFailure
+          imagePullSecrets:
+            - name: ghcr-login
           containers:
             - name: factory
-              image: ghcr.io/timholmquist/claude-code-factory:latest
+              image: ghcr.io/timholm/claude-code-factory:latest
               args: ["gather"]
               envFrom:
                 - secretRef:
@@ -37,6 +39,8 @@ spec:
       template:
         spec:
           restartPolicy: OnFailure
+          imagePullSecrets:
+            - name: ghcr-login
           nodeSelector:
             kubernetes.io/hostname: cm3588-plus
           initContainers:
@@ -51,7 +55,7 @@ spec:
                   mountPath: /home/factory/.claude
           containers:
             - name: factory
-              image: ghcr.io/timholmquist/claude-code-factory:latest
+              image: ghcr.io/timholm/claude-code-factory:latest
               args: ["analyze"]
               env:
                 - name: HOME
@@ -92,6 +96,8 @@ spec:
       template:
         spec:
           restartPolicy: OnFailure
+          imagePullSecrets:
+            - name: ghcr-login
           nodeSelector:
             kubernetes.io/hostname: cm3588-plus
           initContainers:
@@ -106,7 +112,7 @@ spec:
                   mountPath: /home/factory/.claude
           containers:
             - name: factory
-              image: ghcr.io/timholmquist/claude-code-factory:latest
+              image: ghcr.io/timholm/claude-code-factory:latest
               args: ["build"]
               env:
                 - name: HOME
@@ -151,9 +157,11 @@ spec:
       template:
         spec:
           restartPolicy: OnFailure
+          imagePullSecrets:
+            - name: ghcr-login
           containers:
             - name: factory
-              image: ghcr.io/timholmquist/claude-code-factory:latest
+              image: ghcr.io/timholm/claude-code-factory:latest
               args: ["mirror"]
               envFrom:
                 - secretRef:
