@@ -70,11 +70,6 @@ func processSpec(ctx context.Context, reg *registry.Registry, spec *registry.Bui
 		return handleFailure(reg, spec, fmt.Errorf("claude exited %d: %s", result.ExitCode, truncate(result.Output, 500)))
 	}
 
-	// Validate: README.md must exist.
-	if _, err := os.Stat(filepath.Join(workDir, "README.md")); os.IsNotExist(err) {
-		return handleFailure(reg, spec, fmt.Errorf("validation: README.md not found"))
-	}
-
 	// Create bare git repo.
 	bareRepo := filepath.Join(gitDir, spec.Name+".git")
 	if err := os.MkdirAll(gitDir, 0o755); err != nil {
