@@ -30,7 +30,7 @@ func InvokeClaude(ctx context.Context, binary, workDir string) (*ClaudeResult, e
 
 	args := []string{
 		"-p", specContent,
-		"--allowedTools", "Read,Write,Edit,Bash",
+		"--permission-mode", "acceptEdits",
 		"--max-turns", "15",
 		"--output-format", "text",
 	}
