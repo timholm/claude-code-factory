@@ -16,10 +16,11 @@ func Open(path string) (*sql.DB, error) {
 		return nil, fmt.Errorf("registry.Open: create directories: %w", err)
 	}
 
-	db, err := sql.Open("sqlite", path+"?_journal_mode=WAL")
+	db, err := sql.Open("sqlite", path+"?_journal_mode=WAL&_busy_timeout=10000")
 	if err != nil {
 		return nil, fmt.Errorf("registry.Open: open db: %w", err)
 	}
+	db.SetMaxOpenConns(1) // SQLite handles one writer at a time
 
 	if err := migrate(db); err != nil {
 		db.Close()
