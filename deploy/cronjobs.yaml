@@ -173,3 +173,123 @@ spec:
             - name: git-repos
               persistentVolumeClaim:
                 claimName: git-repos
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: archive-sync
+  namespace: factory
+  labels:
+    app.kubernetes.io/name: archive-sync
+    app.kubernetes.io/component: ingestion
+    app.kubernetes.io/part-of: claude-code-factory
+spec:
+  schedule: "0 4 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 7200
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: archive-sync
+            app.kubernetes.io/component: ingestion
+        spec:
+          restartPolicy: OnFailure
+          imagePullSecrets:
+            - name: ghcr-login
+          nodeSelector:
+            kubernetes.io/hostname: cm3588-plus
+          containers:
+            - name: archive-sync
+              image: ghcr.io/timholm/arxiv-archive:latest
+              args: ["sync"]
+              env:
+                - name: POSTGRES_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: postgres-credentials
+                      key: POSTGRES_URL
+                - name: LLM_ROUTER_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: factory-secrets
+                      key: LLM_ROUTER_URL
+                - name: ARXIV_DATA_DIR
+                  value: /srv/arxiv
+              resources:
+                requests:
+                  memory: "512Mi"
+                  cpu: "250m"
+                limits:
+                  memory: "2Gi"
+                  cpu: "1000m"
+              volumeMounts:
+                - name: arxiv-data
+                  mountPath: /srv/arxiv
+          volumes:
+            - name: arxiv-data
+              persistentVolumeClaim:
+                claimName: factory-data
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: idea-engine
+  namespace: factory
+  labels:
+    app.kubernetes.io/name: idea-engine
+    app.kubernetes.io/component: ideation
+    app.kubernetes.io/part-of: claude-code-factory
+spec:
+  schedule: "0 5 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 7200
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: idea-engine
+            app.kubernetes.io/component: ideation
+        spec:
+          restartPolicy: OnFailure
+          imagePullSecrets:
+            - name: ghcr-login
+          nodeSelector:
+            kubernetes.io/hostname: cm3588-plus
+          containers:
+            - name: idea-engine
+              image: ghcr.io/timholm/idea-engine:latest
+              args: ["run"]
+              env:
+                - name: POSTGRES_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: postgres-credentials
+                      key: POSTGRES_URL
+                - name: LLM_ROUTER_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: factory-secrets
+                      key: LLM_ROUTER_URL
+                - name: ARCHIVE_URL
+                  value: "http://arxiv-archive.factory.svc:8080"
+                - name: GITHUB_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: factory-secrets
+                      key: GITHUB_TOKEN
+              resources:
+                requests:
+                  memory: "512Mi"
+                  cpu: "250m"
+                limits:
+                  memory: "2Gi"
+                  cpu: "1000m"

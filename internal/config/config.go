@@ -7,14 +7,16 @@ import (
 
 // Config holds all runtime configuration for the factory.
 type Config struct {
-	GitHubToken    string
-	GitHubUser     string
-	DataDir        string
-	GitDir         string
-	ClaudeBinary   string
-	MirrorDelaySec int
-	RouterURL      string // llm-router URL for analyze/routing (optional, e.g. "http://localhost:8080")
-	BuildWorkers   int    // number of parallel build workers (default: 1)
+	GitHubToken            string
+	GitHubUser             string
+	DataDir                string
+	GitDir                 string
+	ClaudeBinary           string
+	MirrorDelaySec         int
+	RouterURL              string // llm-router URL for analyze/routing (optional, e.g. "http://localhost:8080")
+	BuildWorkers           int    // number of parallel build workers (default: 1)
+	IdeaEnginePostgresURL  string // Postgres connection for idea-engine candidates (optional)
+	SpecsDir               string // directory to watch for spec JSON files (optional)
 }
 
 func getenv(key, defaultVal string) string {
@@ -34,13 +36,15 @@ func Load() Config {
 	}
 
 	return Config{
-		GitHubToken:    os.Getenv("GITHUB_TOKEN"),
-		GitHubUser:     os.Getenv("GITHUB_USER"),
-		DataDir:        getenv("FACTORY_DATA_DIR", "/srv/factory"),
-		GitDir:         getenv("FACTORY_GIT_DIR", "/srv/git"),
-		ClaudeBinary:   getenv("CLAUDE_BINARY", "claude"),
-		MirrorDelaySec: 30,
-		RouterURL:      os.Getenv("LLM_ROUTER_URL"), // e.g. "http://localhost:8080"
-		BuildWorkers:   workers,
+		GitHubToken:            os.Getenv("GITHUB_TOKEN"),
+		GitHubUser:             os.Getenv("GITHUB_USER"),
+		DataDir:                getenv("FACTORY_DATA_DIR", "/srv/factory"),
+		GitDir:                 getenv("FACTORY_GIT_DIR", "/srv/git"),
+		ClaudeBinary:           getenv("CLAUDE_BINARY", "claude"),
+		MirrorDelaySec:         30,
+		RouterURL:              os.Getenv("LLM_ROUTER_URL"), // e.g. "http://localhost:8080"
+		BuildWorkers:           workers,
+		IdeaEnginePostgresURL:  os.Getenv("IDEA_ENGINE_POSTGRES_URL"),
+		SpecsDir:               os.Getenv("FACTORY_SPECS_DIR"),
 	}
 }

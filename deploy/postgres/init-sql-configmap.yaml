@@ -1,0 +1,106 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init-sql
+  namespace: factory
+  labels:
+    app.kubernetes.io/name: postgres
+    app.kubernetes.io/component: database
+    app.kubernetes.io/part-of: claude-code-factory
+data:
+  init.sql: |
+    -- Enable pgvector extension
+    CREATE EXTENSION IF NOT EXISTS vector;
+
+    -- ============================================================
+    -- arxiv-archive tables
+    -- ============================================================
+
+    CREATE TABLE IF NOT EXISTS papers (
+      id            TEXT PRIMARY KEY,
+      title         TEXT NOT NULL,
+      abstract      TEXT NOT NULL,
+      authors       JSONB NOT NULL DEFAULT '[]',
+      categories    TEXT[] NOT NULL DEFAULT '{}',
+      published     TIMESTAMPTZ NOT NULL,
+      updated       TIMESTAMPTZ,
+      doi           TEXT,
+      journal_ref   TEXT,
+      pdf_url       TEXT,
+      source_url    TEXT,
+      embedding     vector(1536),
+      metadata      JSONB NOT NULL DEFAULT '{}',
+      created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_papers_published ON papers (published DESC);
+    CREATE INDEX IF NOT EXISTS idx_papers_categories ON papers USING GIN (categories);
+    CREATE INDEX IF NOT EXISTS idx_papers_authors ON papers USING GIN (authors);
+    CREATE INDEX IF NOT EXISTS idx_papers_embedding ON papers USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+    CREATE INDEX IF NOT EXISTS idx_papers_metadata ON papers USING GIN (metadata);
+    CREATE INDEX IF NOT EXISTS idx_papers_created_at ON papers (created_at DESC);
+
+    CREATE TABLE IF NOT EXISTS refs (
+      paper_id      TEXT NOT NULL REFERENCES papers(id) ON DELETE CASCADE,
+      ref_id        TEXT NOT NULL,
+      ref_title     TEXT,
+      PRIMARY KEY (paper_id, ref_id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_refs_ref_id ON refs (ref_id);
+
+    CREATE TABLE IF NOT EXISTS sync_state (
+      id            TEXT PRIMARY KEY DEFAULT 'singleton',
+      last_sync     TIMESTAMPTZ NOT NULL DEFAULT now(),
+      last_cursor   TEXT,
+      papers_synced BIGINT NOT NULL DEFAULT 0,
+      status        TEXT NOT NULL DEFAULT 'idle',
+      error         TEXT,
+      updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
+    INSERT INTO sync_state (id) VALUES ('singleton') ON CONFLICT DO NOTHING;
+
+    -- ============================================================
+    -- idea-engine tables
+    -- ============================================================
+
+    CREATE TABLE IF NOT EXISTS candidates (
+      id            TEXT PRIMARY KEY,
+      title         TEXT NOT NULL,
+      description   TEXT NOT NULL,
+      rationale     TEXT,
+      source_papers TEXT[] NOT NULL DEFAULT '{}',
+      tags          TEXT[] NOT NULL DEFAULT '{}',
+      score         DOUBLE PRECISION NOT NULL DEFAULT 0,
+      status        TEXT NOT NULL DEFAULT 'pending',
+      embedding     vector(1536),
+      metadata      JSONB NOT NULL DEFAULT '{}',
+      created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+      updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_candidates_status ON candidates (status);
+    CREATE INDEX IF NOT EXISTS idx_candidates_score ON candidates (score DESC);
+    CREATE INDEX IF NOT EXISTS idx_candidates_tags ON candidates USING GIN (tags);
+    CREATE INDEX IF NOT EXISTS idx_candidates_source_papers ON candidates USING GIN (source_papers);
+    CREATE INDEX IF NOT EXISTS idx_candidates_embedding ON candidates USING ivfflat (embedding vector_cosine_ops) WITH (lists = 50);
+    CREATE INDEX IF NOT EXISTS idx_candidates_created_at ON candidates (created_at DESC);
+
+    CREATE TABLE IF NOT EXISTS shipped_ideas (
+      id              TEXT PRIMARY KEY,
+      candidate_id    TEXT NOT NULL REFERENCES candidates(id),
+      repo_name       TEXT NOT NULL,
+      repo_url        TEXT,
+      shipped_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+      build_status    TEXT NOT NULL DEFAULT 'pending',
+      build_log       TEXT,
+      metadata        JSONB NOT NULL DEFAULT '{}',
+      created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_shipped_ideas_candidate_id ON shipped_ideas (candidate_id);
+    CREATE INDEX IF NOT EXISTS idx_shipped_ideas_repo_name ON shipped_ideas (repo_name);
+    CREATE INDEX IF NOT EXISTS idx_shipped_ideas_shipped_at ON shipped_ideas (shipped_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_shipped_ideas_build_status ON shipped_ideas (build_status);

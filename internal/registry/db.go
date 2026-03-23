@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	_ "modernc.org/sqlite"
 )
@@ -87,7 +88,35 @@ func migrate(db *sql.DB) error {
 		}
 	}
 
+	// Additive migrations — add columns for idea-engine integration.
+	// These use a helper that silently ignores "duplicate column" errors
+	// so they're safe to run on both new and existing databases.
+	alterations := []string{
+		`ALTER TABLE build_queue ADD COLUMN source_papers TEXT`,
+		`ALTER TABLE build_queue ADD COLUMN source_repos TEXT`,
+		`ALTER TABLE build_queue ADD COLUMN market_analysis TEXT`,
+	}
+	for _, stmt := range alterations {
+		if _, err := db.Exec(stmt); err != nil {
+			// SQLite returns "duplicate column name" if the column already exists.
+			// This is expected on subsequent opens — ignore it.
+			if !isDuplicateColumn(err) {
+				return fmt.Errorf("alter: %w", err)
+			}
+		}
+	}
+
 	return nil
+}
+
+// isDuplicateColumn returns true if the error indicates an ALTER TABLE
+// tried to add a column that already exists.
+func isDuplicateColumn(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := err.Error()
+	return strings.Contains(msg, "duplicate column name")
 }
 
 func min(a, b int) int {

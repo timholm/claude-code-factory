@@ -13,6 +13,8 @@ func TestLoadFromEnv(t *testing.T) {
 	t.Setenv("FACTORY_DATA_DIR", "/tmp/data")
 	t.Setenv("FACTORY_GIT_DIR", "/tmp/git")
 	t.Setenv("CLAUDE_BINARY", "/usr/local/bin/claude")
+	t.Setenv("IDEA_ENGINE_POSTGRES_URL", "postgres://localhost:5432/ideas")
+	t.Setenv("FACTORY_SPECS_DIR", "/srv/specs")
 
 	cfg := config.Load()
 
@@ -34,6 +36,12 @@ func TestLoadFromEnv(t *testing.T) {
 	if cfg.MirrorDelaySec != 30 {
 		t.Errorf("MirrorDelaySec: got %d, want 30", cfg.MirrorDelaySec)
 	}
+	if cfg.IdeaEnginePostgresURL != "postgres://localhost:5432/ideas" {
+		t.Errorf("IdeaEnginePostgresURL: got %q, want %q", cfg.IdeaEnginePostgresURL, "postgres://localhost:5432/ideas")
+	}
+	if cfg.SpecsDir != "/srv/specs" {
+		t.Errorf("SpecsDir: got %q, want %q", cfg.SpecsDir, "/srv/specs")
+	}
 }
 
 func TestLoadDefaults(t *testing.T) {
@@ -42,6 +50,8 @@ func TestLoadDefaults(t *testing.T) {
 	os.Unsetenv("FACTORY_DATA_DIR")
 	os.Unsetenv("FACTORY_GIT_DIR")
 	os.Unsetenv("CLAUDE_BINARY")
+	os.Unsetenv("IDEA_ENGINE_POSTGRES_URL")
+	os.Unsetenv("FACTORY_SPECS_DIR")
 
 	cfg := config.Load()
 
@@ -62,5 +72,11 @@ func TestLoadDefaults(t *testing.T) {
 	}
 	if cfg.MirrorDelaySec != 30 {
 		t.Errorf("MirrorDelaySec: got %d, want 30", cfg.MirrorDelaySec)
+	}
+	if cfg.IdeaEnginePostgresURL != "" {
+		t.Errorf("IdeaEnginePostgresURL: got %q, want empty string", cfg.IdeaEnginePostgresURL)
+	}
+	if cfg.SpecsDir != "" {
+		t.Errorf("SpecsDir: got %q, want empty string", cfg.SpecsDir)
 	}
 }

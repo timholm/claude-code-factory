@@ -148,10 +148,10 @@ build-backend = "setuptools.backends.legacy:build"
 	makefile := `.PHONY: test lint
 
 test:
-	python -m pytest
+	python3 -m pytest
 
 lint:
-	ruff check .
+	python3 -m ruff check .
 `
 	if err := writeFile(filepath.Join(dir, "Makefile"), makefile); err != nil {
 		return err

@@ -163,6 +163,89 @@ func TestUpdateStatus(t *testing.T) {
 	}
 }
 
+func TestSpecExists_InBuildQueue(t *testing.T) {
+	r := testDB(t)
+
+	// Should not exist initially.
+	exists, err := r.SpecExists("nonexistent")
+	if err != nil {
+		t.Fatalf("SpecExists: %v", err)
+	}
+	if exists {
+		t.Error("expected false for nonexistent spec")
+	}
+
+	// Enqueue a spec.
+	if err := r.EnqueueSpec(BuildSpec{
+		Name:     "queued-spec",
+		Problem:  "p",
+		Solution: "s",
+		Language: "go",
+		Files:    `["main.go"]`,
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	exists, err = r.SpecExists("queued-spec")
+	if err != nil {
+		t.Fatalf("SpecExists: %v", err)
+	}
+	if !exists {
+		t.Error("expected true for spec in build_queue")
+	}
+}
+
+func TestSpecExists_InRepos(t *testing.T) {
+	r := testDB(t)
+
+	if err := r.InsertRepo(Repo{
+		Name:     "shipped-tool",
+		Language: "go",
+		Problem:  "already shipped",
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	exists, err := r.SpecExists("shipped-tool")
+	if err != nil {
+		t.Fatalf("SpecExists: %v", err)
+	}
+	if !exists {
+		t.Error("expected true for spec in repos table")
+	}
+}
+
+func TestEnqueueSpecWithNewFields(t *testing.T) {
+	r := testDB(t)
+
+	spec := BuildSpec{
+		Name:           "research-tool",
+		Problem:        "research problem",
+		Solution:       "research solution",
+		Language:       "go",
+		Files:          `["main.go"]`,
+		EstimatedLines: 100,
+		SourcePapers:   `["2603.12345","2603.67890"]`,
+		SourceRepos:    `["https://github.com/a/b"]`,
+		MarketAnalysis: "strong demand in ML tooling",
+	}
+
+	if err := r.EnqueueSpec(spec); err != nil {
+		t.Fatalf("EnqueueSpec: %v", err)
+	}
+
+	got, err := r.DequeueNext()
+	if err != nil {
+		t.Fatalf("DequeueNext: %v", err)
+	}
+	if got == nil {
+		t.Fatal("expected spec, got nil")
+	}
+	if got.Name != "research-tool" {
+		t.Errorf("Name = %q, want %q", got.Name, "research-tool")
+	}
+}
+
 func TestRequeueForRetry(t *testing.T) {
 	r := testDB(t)
 

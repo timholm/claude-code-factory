@@ -7,26 +7,31 @@ import (
 
 // BuildSpec represents a single item in the build queue.
 type BuildSpec struct {
-	ID             int64
-	Name           string
-	Problem        string
-	SourceURL      string
-	Solution       string
-	Language       string
-	Files          string // JSON array as string
-	EstimatedLines int
-	Status         string
-	Attempts       int
-	ErrorLog       string
+	ID              int64
+	Name            string
+	Problem         string
+	SourceURL       string
+	Solution        string
+	Language        string
+	Files           string // JSON array as string
+	EstimatedLines  int
+	Status          string
+	Attempts        int
+	ErrorLog        string
+	SourcePapers    string // JSON array of arxiv IDs
+	SourceRepos     string // JSON array of github URLs
+	MarketAnalysis  string
 }
 
 // EnqueueSpec inserts a new BuildSpec into the build_queue with status 'queued'.
 func (r *Registry) EnqueueSpec(s BuildSpec) error {
 	_, err := r.DB.Exec(
 		`INSERT INTO build_queue
-			(name, problem, source_url, solution, language, files, estimated_lines, status)
-		VALUES (?, ?, ?, ?, ?, ?, ?, 'queued')`,
+			(name, problem, source_url, solution, language, files, estimated_lines, status,
+			 source_papers, source_repos, market_analysis)
+		VALUES (?, ?, ?, ?, ?, ?, ?, 'queued', ?, ?, ?)`,
 		s.Name, s.Problem, s.SourceURL, s.Solution, s.Language, s.Files, s.EstimatedLines,
+		s.SourcePapers, s.SourceRepos, s.MarketAnalysis,
 	)
 	if err != nil {
 		return fmt.Errorf("registry.EnqueueSpec: %w", err)
@@ -116,6 +121,24 @@ func (r *Registry) MarkFailed(id int64, errLog string) error {
 		return fmt.Errorf("registry.MarkFailed: %w", err)
 	}
 	return nil
+}
+
+// SpecExists returns true if a spec with the given name already exists in
+// the build_queue (any status) or in the repos table. Used for dedup during import.
+func (r *Registry) SpecExists(name string) (bool, error) {
+	var count int
+	err := r.DB.QueryRow(
+		`SELECT COUNT(*) FROM (
+			SELECT name FROM build_queue WHERE name = ?
+			UNION ALL
+			SELECT name FROM repos WHERE name = ?
+		)`,
+		name, name,
+	).Scan(&count)
+	if err != nil {
+		return false, fmt.Errorf("registry.SpecExists: %w", err)
+	}
+	return count > 0, nil
 }
 
 // RequeueForRetry resets a build_queue item's status back to 'queued' for another attempt.
