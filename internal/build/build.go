@@ -58,9 +58,9 @@ func phases(estimatedLines int) []Phase {
 			Name:         "seo",
 			Status:       "seo",
 			TemplateName: "seo.md.tmpl",
-			MaxTurns:     8,
+			MaxTurns:     15,
 			Required:     false,
-			Model:        "haiku", // Fast + cheap for documentation generation
+			Model:        "sonnet", // Needs enough capability to read code + write good docs
 			AllowedTools: []string{"Read", "Write", "Edit", "Glob", "Grep"}, // No Bash — SEO doesn't need to run code
 		},
 		{
