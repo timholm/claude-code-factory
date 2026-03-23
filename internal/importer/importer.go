@@ -83,7 +83,7 @@ func ImportFromDB(postgresURL string, reg *registry.Registry) (int, error) {
 	}
 
 	rows, err := pg.Query(
-		`SELECT id, spec_json FROM candidates WHERE status = 'synthesized' ORDER BY id`,
+		`SELECT id, spec_json FROM candidates WHERE status IN ('synthesized', 'delivered') AND spec_json IS NOT NULL AND spec_json != '' ORDER BY id`,
 	)
 	if err != nil {
 		return 0, fmt.Errorf("importer: query candidates: %w", err)
@@ -123,7 +123,7 @@ func ImportFromDB(postgresURL string, reg *registry.Registry) (int, error) {
 		if exists {
 			log.Printf("importer: skipping %s: already exists", spec.Name)
 			// Still mark as delivered so we don't re-process it.
-			if _, err := pg.Exec(`UPDATE candidates SET status = 'delivered', delivered_at = NOW() WHERE id = $1`, c.id); err != nil {
+			if _, err := pg.Exec(`UPDATE candidates SET status = 'imported', delivered_at = NOW() WHERE id = $1`, c.id); err != nil {
 				log.Printf("importer: failed to mark candidate %d as delivered: %v", c.id, err)
 			}
 			continue
@@ -134,7 +134,7 @@ func ImportFromDB(postgresURL string, reg *registry.Registry) (int, error) {
 			continue
 		}
 
-		if _, err := pg.Exec(`UPDATE candidates SET status = 'delivered', delivered_at = NOW() WHERE id = $1`, c.id); err != nil {
+		if _, err := pg.Exec(`UPDATE candidates SET status = 'imported', delivered_at = NOW() WHERE id = $1`, c.id); err != nil {
 			log.Printf("importer: enqueued %s but failed to mark candidate %d as delivered: %v", spec.Name, c.id, err)
 		}
 
