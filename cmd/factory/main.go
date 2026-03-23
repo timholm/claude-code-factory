@@ -54,16 +54,7 @@ func gatherCmd() *cobra.Command {
 			reg := &registry.Registry{DB: db}
 
 			scrapers := []gather.Scraper{
-				// Innovation & R&D sources
 				&gather.ArxivScraper{},
-				&gather.GitHubTrendingScraper{Token: cfg.GitHubToken},
-				&gather.YCombinatorScraper{},
-				&gather.ProductHuntScraper{},
-				// Community signals
-				&gather.HNScraper{},
-				&gather.RedditScraper{UserAgent: cfg.RedditAgent},
-				// Claude Code ecosystem
-				&gather.GitHubIssuesScraper{Token: cfg.GitHubToken},
 			}
 
 			count, err := gather.Run(context.Background(), reg, scrapers)
@@ -93,7 +84,7 @@ func analyzeCmd() *cobra.Command {
 
 			promptsDir := resolvePromptsDir()
 
-			return analyze.Run(context.Background(), reg, cfg.ClaudeBinary, promptsDir)
+			return analyze.Run(context.Background(), reg, cfg.ClaudeBinary, promptsDir, cfg.RouterURL)
 		},
 	}
 }
@@ -123,7 +114,13 @@ func buildCmd() *cobra.Command {
 			defer db.Close()
 			reg := &registry.Registry{DB: db}
 
-			return build.Run(context.Background(), reg, cfg.ClaudeBinary, cfg.GitDir, cfg.GitHubUser)
+			return build.Run(context.Background(), reg, build.BuildConfig{
+				ClaudeBinary: cfg.ClaudeBinary,
+				GitDir:       cfg.GitDir,
+				GitHubUser:   cfg.GitHubUser,
+				RouterURL:    cfg.RouterURL,
+				Workers:      cfg.BuildWorkers,
+			})
 		},
 	}
 }

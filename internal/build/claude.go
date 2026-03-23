@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 )
 
@@ -17,31 +16,49 @@ type ClaudeResult struct {
 	RateLimit bool
 }
 
-// InvokeClaude runs Claude headlessly against the SPEC.md found in workDir.
+// ClaudeOpts configures a Claude Code invocation.
+type ClaudeOpts struct {
+	Prompt         string
+	MaxTurns       int
+	Model          string   // optional: "sonnet", "haiku", "opus"
+	SystemPrompt   string   // optional: separate system instructions
+	AllowedTools   []string // optional: restrict available tools
+}
+
+// InvokeClaude runs Claude headlessly with the given options in workDir.
 // It sets CLAUDE_CODE_DISABLE_AUTO_MEMORY=1 and uses --output-format text.
 // Rate-limit detection checks for the strings "usage limit", "rate limit", or "capacity".
-func InvokeClaude(ctx context.Context, binary, workDir string, estimatedLines int) (*ClaudeResult, error) {
-	specPath := filepath.Join(workDir, "SPEC.md")
-	specBytes, err := os.ReadFile(specPath)
-	if err != nil {
-		return nil, fmt.Errorf("InvokeClaude: read SPEC.md: %w", err)
-	}
-	specContent := string(specBytes)
+func InvokeClaude(ctx context.Context, binary, workDir, prompt string, maxTurns int) (*ClaudeResult, error) {
+	return InvokeClaudeWithOpts(ctx, binary, workDir, ClaudeOpts{
+		Prompt:   prompt,
+		MaxTurns: maxTurns,
+	})
+}
 
-	// Fewer turns for small projects, more for large ones
-	maxTurns := "6"
-	if estimatedLines > 100 {
-		maxTurns = "10"
-	}
-	if estimatedLines > 200 {
-		maxTurns = "15"
-	}
-
+// InvokeClaudeWithOpts runs Claude headlessly with full options control.
+// This is the optimized path — allows model selection, tool restrictions,
+// and system prompts for maximum efficiency per phase.
+func InvokeClaudeWithOpts(ctx context.Context, binary, workDir string, opts ClaudeOpts) (*ClaudeResult, error) {
 	args := []string{
-		"-p", specContent,
+		"-p", opts.Prompt,
 		"--permission-mode", "acceptEdits",
-		"--max-turns", maxTurns,
+		"--max-turns", fmt.Sprintf("%d", opts.MaxTurns),
 		"--output-format", "text",
+	}
+
+	// Model selection: use cheaper models for simple tasks.
+	if opts.Model != "" {
+		args = append(args, "--model", opts.Model)
+	}
+
+	// System prompt: separate context from instructions.
+	if opts.SystemPrompt != "" {
+		args = append(args, "--system-prompt", opts.SystemPrompt)
+	}
+
+	// Tool restrictions: don't let SEO phase run code, etc.
+	for _, tool := range opts.AllowedTools {
+		args = append(args, "--allowedTools", tool)
 	}
 
 	cmd := exec.CommandContext(ctx, binary, args...)

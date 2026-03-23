@@ -7,6 +7,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"regexp"
@@ -90,11 +92,15 @@ func renderPrompt(promptsDir string, items []registry.RawItem) (string, error) {
 // Run is the full analyze pipeline:
 //  1. Fetch unfed items from the registry.
 //  2. Render the prompt template.
-//  3. Call Claude via the headless CLI.
+//  3. Call Claude via llm-router (if configured) or the headless CLI.
 //  4. Parse specs from Claude's output.
 //  5. Enqueue each spec for building.
 //  6. Mark items as fed.
-func Run(ctx context.Context, reg *registry.Registry, claudeBinary, promptsDir string) error {
+//
+// When routerURL is non-empty, the prompt is sent through llm-router which
+// provides: semantic caching (similar paper batches → cached analysis),
+// automatic model selection (haiku for analysis = cheap), and request dedup.
+func Run(ctx context.Context, reg *registry.Registry, claudeBinary, promptsDir, routerURL string) error {
 	items, err := reg.GetUnfedItems()
 	if err != nil {
 		return fmt.Errorf("analyze.Run: get unfed items: %w", err)
@@ -110,7 +116,19 @@ func Run(ctx context.Context, reg *registry.Registry, claudeBinary, promptsDir s
 		return fmt.Errorf("analyze.Run: render prompt: %w", err)
 	}
 
-	raw, err := callClaude(ctx, claudeBinary, prompt)
+	var raw string
+	if routerURL != "" {
+		// Try routing through llm-router — gets caching, model routing, dedup.
+		fmt.Println("analyze: routing through llm-router")
+		raw, err = callRouter(ctx, routerURL, prompt)
+		if err != nil {
+			// Fallback to Claude CLI if router fails (e.g., no API key — using OAuth).
+			fmt.Printf("analyze: router failed (%v), falling back to Claude CLI\n", err)
+			raw, err = callClaude(ctx, claudeBinary, prompt)
+		}
+	} else {
+		raw, err = callClaude(ctx, claudeBinary, prompt)
+	}
 	if err != nil {
 		return fmt.Errorf("analyze.Run: call claude: %w", err)
 	}
@@ -150,6 +168,66 @@ func Run(ctx context.Context, reg *registry.Registry, claudeBinary, promptsDir s
 
 	fmt.Printf("analyze: enqueued %d specs, marked %d items as fed\n", len(specs), len(ids))
 	return nil
+}
+
+// callRouter sends the analyze prompt through llm-router's chat completion endpoint.
+// This gets semantic caching, model routing, and dedup for free.
+func callRouter(ctx context.Context, routerURL, prompt string) (string, error) {
+	reqBody := struct {
+		Messages []struct {
+			Role    string `json:"role"`
+			Content string `json:"content"`
+		} `json:"messages"`
+	}{
+		Messages: []struct {
+			Role    string `json:"role"`
+			Content string `json:"content"`
+		}{
+			{Role: "user", Content: prompt},
+		},
+	}
+
+	body, err := json.Marshal(reqBody)
+	if err != nil {
+		return "", fmt.Errorf("callRouter: marshal: %w", err)
+	}
+
+	url := strings.TrimRight(routerURL, "/") + "/v1/chat/completions"
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(body))
+	if err != nil {
+		return "", fmt.Errorf("callRouter: create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("callRouter: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("callRouter: read response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("callRouter: status %d: %s", resp.StatusCode, string(respBody)[:min(200, len(respBody))])
+	}
+
+	// Try to parse as OpenAI chat response format.
+	var chatResp struct {
+		Choices []struct {
+			Message struct {
+				Content string `json:"content"`
+			} `json:"message"`
+		} `json:"choices"`
+	}
+	if err := json.Unmarshal(respBody, &chatResp); err == nil && len(chatResp.Choices) > 0 {
+		return chatResp.Choices[0].Message.Content, nil
+	}
+
+	// Fallback: return raw body.
+	return string(respBody), nil
 }
 
 // callClaude invokes the Claude CLI headlessly and returns its stdout.

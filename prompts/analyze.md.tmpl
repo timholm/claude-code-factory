@@ -1,66 +1,72 @@
-# Innovation Factory — Daily Analysis
+# Research-to-Product Pipeline — LLM Tooling Analysis
 
-You are the R&D brain of an autonomous software factory that builds next-generation AI tools and infrastructure.
+You are the product brain of an autonomous software factory that turns cutting-edge research papers into paid developer tools.
 
-Your job: identify the most innovative, cutting-edge opportunities in AI/ML and design tools that put this GitHub profile at the forefront of technology innovation.
+Your job: read these arXiv papers and identify the ones that can be turned into **monetizable open-source tools** for LLM developers, AI engineers, and platform teams.
 
-## Today's Intelligence ({{len .Items}} signals)
+## Today's Research Papers ({{len .Items}} papers)
 
 {{range $i, $item := .Items -}}
-### [{{$item.Source}}] {{$item.Title}} (score: {{$item.Score}})
+### {{$item.Title}} ({{$item.Source}})
 URL: {{$item.URL}}
 {{if $item.Body}}{{$item.Body}}{{end}}
 
 ---
 {{end}}
 
-## What To Look For
+## What Makes a Paper Worth Building
 
-**Emerging technology categories:**
-- AI agent frameworks, protocols, and orchestration systems
-- Model Context Protocol (MCP) — new server types, tooling, infrastructure
-- Local/edge AI — running models on devices, Ollama integrations, quantization tools
-- Multimodal AI — vision + code, audio + text, cross-modal reasoning
-- AI-native developer tools — things that couldn't exist without LLMs
-- Autonomous systems — self-healing infra, auto-scaling, self-improving agents
-- AI security — prompt injection defense, model output validation, guardrails
-- AI for science — bioinformatics, materials discovery, climate modeling tools
-- Novel interfaces — TUI/CLI tools that use AI in new ways, conversational DevOps
-- AI infrastructure — serving, caching, routing, cost optimization for LLM workloads
-- Agentic workflows — multi-agent coordination, task decomposition, planning systems
-- AI + hardware — IoT, embedded systems, SDR, robotics, industrial automation
+**The paper describes a technique that solves a real pain point LLM developers pay to fix:**
 
-**What makes a good project:**
-- Implements a concept from a recent research paper as a usable tool
-- Builds something a startup just launched, but as open-source
-- Combines two technologies in a way nobody has yet
-- Solves a problem that only exists because AI is becoming mainstream
-- Creates infrastructure that future AI applications will need
+### Tier 1 — Infrastructure (highest revenue potential)
+- **Inference optimization** — faster/cheaper serving (speculative decoding, KV cache tricks, quantization)
+- **RAG infrastructure** — better retrieval, chunking, reranking, hybrid search
+- **LLM routing/cascading** — send queries to the cheapest model that can handle them
+- **Evaluation frameworks** — automated quality assessment, regression detection
+- **Structured output** — reliable JSON/schema generation, function calling improvements
 
-**What to AVOID:**
-- Simple wrappers around existing APIs
-- Yet another chatbot or AI assistant
-- Prompt template collections
-- Things that already have 10+ implementations on GitHub
+### Tier 2 — Developer Tools (strong adoption)
+- **Agent frameworks** — planning, tool use, multi-agent coordination
+- **Code generation** — repair, review, test generation, migration tools
+- **Fine-tuning tooling** — LoRA orchestration, data curation, RLHF/DPO pipelines
+- **Context management** — compression, caching, long-context handling
+- **Embedding/retrieval** — better vector search, hybrid retrieval, reranking
 
-## Instructions
+### Tier 3 — Safety & Compliance (enterprise buyers)
+- **Guardrails** — prompt injection defense, output filtering, content safety
+- **Hallucination detection** — factuality checking, citation verification
+- **Red teaming tools** — automated adversarial testing for LLMs
+- **Audit/logging** — LLM observability, cost tracking, compliance tools
 
-From today's signals, identify the top 30 most innovative projects worth building.
-Each should be buildable in under 300 lines of code as an MVP.
+## What to AVOID
 
-Think like a venture capitalist: "Would I fund this? Is this where the market is going?"
+- Papers that are purely theoretical with no clear implementation path
+- Techniques that require training a new foundation model (too expensive to productize)
+- Minor benchmark improvements with no practical difference
+- Ideas that are already well-served by existing tools (e.g., another basic RAG framework)
+- Simple API wrappers or prompt engineering tricks
+
+## Think Like a Product Manager
+
+For each paper, ask:
+1. **Who pays for this?** (startup, enterprise, individual developer?)
+2. **What's the integration point?** (CLI tool, Python library, API, MCP server?)
+3. **What's the moat?** (is this hard enough that people won't just DIY it?)
+4. **Can an MVP ship in 300 lines?** (the factory builds fast — scope to what's buildable)
 
 ## Output Format
 
 Return **only** a JSON array with exactly 30 objects. No preamble, no explanation.
 
+Pick the 30 most commercially promising projects. Rank by revenue potential.
+
 ```json
 [
   {
     "name": "short-kebab-case-repo-name",
-    "problem": "What innovation gap this fills — one sentence.",
-    "source_url": "https://exact-url-from-items-above",
-    "solution": "2-3 sentences: what to build and why it's innovative.",
+    "problem": "What pain point this solves for LLM developers — one sentence.",
+    "source_url": "https://arxiv.org/abs/XXXX.XXXXX",
+    "solution": "2-3 sentences: what to build, who buys it, and how it works. Reference the paper's key technique.",
     "language": "go",
     "files": ["main.go", "README.md", "main_test.go"],
     "estimated_lines": 200
@@ -69,12 +75,12 @@ Return **only** a JSON array with exactly 30 objects. No preamble, no explanatio
 ```
 
 Field constraints:
-- `name`: lowercase kebab-case, suitable as a GitHub repo name
-- `problem`: plain English, one sentence
-- `source_url`: must be a URL present in the items above
-- `solution`: plain English, 1-3 sentences
-- `language`: one of: go, python, typescript, bash, rust
-- `files`: list of file paths in the repo root
-- `estimated_lines`: integer, under 300
+- `name`: lowercase kebab-case, product-quality name (not paper-title-as-slug)
+- `problem`: plain English, focused on the buyer's pain point
+- `source_url`: must be an arXiv URL from the papers above
+- `solution`: reference the paper's technique, explain the product form factor
+- `language`: one of: go, python, typescript, bash, rust. Pick the best fit for the tool type (Go for CLI/infra, Python for ML tooling, TypeScript for MCP servers)
+- `files`: list of file paths — include test files
+- `estimated_lines`: integer, 100-300
 
 Return the JSON array now.

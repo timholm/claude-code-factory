@@ -124,6 +124,45 @@ func TestMarkFailed(t *testing.T) {
 	}
 }
 
+func TestUpdateStatus(t *testing.T) {
+	r := testDB(t)
+
+	spec := BuildSpec{
+		Name:      "status-test",
+		Problem:   "test status transitions",
+		Solution:  "update status",
+		Language:  "go",
+		Files:     `["main.go"]`,
+	}
+	if err := r.EnqueueSpec(spec); err != nil {
+		t.Fatalf("EnqueueSpec: %v", err)
+	}
+
+	got, err := r.DequeueNext()
+	if err != nil {
+		t.Fatalf("DequeueNext: %v", err)
+	}
+	if got == nil {
+		t.Fatal("expected spec, got nil")
+	}
+
+	// Transition through the pipeline statuses.
+	for _, status := range []string{"seo", "reviewing", "shipped"} {
+		if err := r.UpdateStatus(got.ID, status); err != nil {
+			t.Fatalf("UpdateStatus(%s): %v", status, err)
+		}
+	}
+
+	// Should not be dequeue-able (not 'queued').
+	next, err := r.DequeueNext()
+	if err != nil {
+		t.Fatalf("DequeueNext after status updates: %v", err)
+	}
+	if next != nil {
+		t.Errorf("expected nil, got %+v", next)
+	}
+}
+
 func TestRequeueForRetry(t *testing.T) {
 	r := testDB(t)
 

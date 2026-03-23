@@ -82,6 +82,18 @@ func (r *Registry) DequeueNext() (*BuildSpec, error) {
 	return &s, nil
 }
 
+// UpdateStatus sets a build_queue item's status to the given value.
+func (r *Registry) UpdateStatus(id int64, status string) error {
+	_, err := r.DB.Exec(
+		`UPDATE build_queue SET status = ? WHERE id = ?`,
+		status, id,
+	)
+	if err != nil {
+		return fmt.Errorf("registry.UpdateStatus: %w", err)
+	}
+	return nil
+}
+
 // MarkShipped sets a build_queue item's status to 'shipped'.
 func (r *Registry) MarkShipped(id int64) error {
 	_, err := r.DB.Exec(

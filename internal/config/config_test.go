@@ -10,7 +10,6 @@ import (
 func TestLoadFromEnv(t *testing.T) {
 	t.Setenv("GITHUB_TOKEN", "test-token")
 	t.Setenv("GITHUB_USER", "test-user")
-	t.Setenv("REDDIT_USER_AGENT", "mybot/2.0")
 	t.Setenv("FACTORY_DATA_DIR", "/tmp/data")
 	t.Setenv("FACTORY_GIT_DIR", "/tmp/git")
 	t.Setenv("CLAUDE_BINARY", "/usr/local/bin/claude")
@@ -22,9 +21,6 @@ func TestLoadFromEnv(t *testing.T) {
 	}
 	if cfg.GitHubUser != "test-user" {
 		t.Errorf("GitHubUser: got %q, want %q", cfg.GitHubUser, "test-user")
-	}
-	if cfg.RedditAgent != "mybot/2.0" {
-		t.Errorf("RedditAgent: got %q, want %q", cfg.RedditAgent, "mybot/2.0")
 	}
 	if cfg.DataDir != "/tmp/data" {
 		t.Errorf("DataDir: got %q, want %q", cfg.DataDir, "/tmp/data")
@@ -43,7 +39,6 @@ func TestLoadFromEnv(t *testing.T) {
 func TestLoadDefaults(t *testing.T) {
 	os.Unsetenv("GITHUB_TOKEN")
 	os.Unsetenv("GITHUB_USER")
-	os.Unsetenv("REDDIT_USER_AGENT")
 	os.Unsetenv("FACTORY_DATA_DIR")
 	os.Unsetenv("FACTORY_GIT_DIR")
 	os.Unsetenv("CLAUDE_BINARY")
@@ -55,9 +50,6 @@ func TestLoadDefaults(t *testing.T) {
 	}
 	if cfg.GitHubUser != "" {
 		t.Errorf("GitHubUser: got %q, want empty string", cfg.GitHubUser)
-	}
-	if cfg.RedditAgent != "factory/1.0" {
-		t.Errorf("RedditAgent: got %q, want %q", cfg.RedditAgent, "factory/1.0")
 	}
 	if cfg.DataDir != "/srv/factory" {
 		t.Errorf("DataDir: got %q, want %q", cfg.DataDir, "/srv/factory")

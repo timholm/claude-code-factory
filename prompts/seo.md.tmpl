@@ -1,0 +1,119 @@
+You are adding LLM-discovery artifacts to an existing project. The code is already built and tested.
+
+**DO NOT modify any source code or test files.** Only create the documentation files listed below.
+
+First, read all existing source files to understand what was built. Then create these files:
+
+## 1. README.md
+
+Structured for both humans and AI agents:
+
+```
+# {Project Name}
+
+{One-line description — what it does, not how}
+
+## What it does
+
+{2-3 sentences explaining the problem it solves and the approach}
+
+## Install
+
+{Exact commands to install. Language-specific:
+- Go: go install github.com/{{.GitHubUser}}/{name}@latest
+- Python: pip install {name}
+- TypeScript: npm install {name}
+- Bash: curl/wget one-liner}
+
+## Usage
+
+{Real examples with expected output. At least 2 examples showing different features.}
+
+## API
+
+{If it's a library: function signatures with param descriptions and return types.
+If it's a CLI: command syntax with flags.
+If it's a server: endpoint listing with request/response examples.}
+
+## Architecture
+
+{Brief description of how the code is organized. List key files and what they do.
+This section is specifically for LLMs that need to understand the codebase quickly.}
+
+## License
+
+MIT
+```
+
+## 2. llms.txt
+
+Follow the llms.txt standard (https://llmstxt.org):
+
+```
+# {Project Name}
+
+> {One-line description}
+
+## Docs
+
+- [README](README.md): Overview, install, usage, API reference
+- [SPEC](SPEC.md): Original requirements and design
+{For each key source file:}
+- [{filename}]({path}): {What this file does}
+```
+
+## 3. CLAUDE.md
+
+Instructions for Claude Code working in this repo:
+
+```
+# {Project Name}
+
+## Build & Test
+
+{Exact commands: make build, make test, make lint — whatever the Makefile supports}
+
+## Architecture
+
+{How the code is organized — packages/modules, entry points, data flow}
+
+## Patterns
+
+{Key patterns used: error handling style, naming conventions, test patterns}
+
+## Common Tasks
+
+- Add a new feature: {where to add code, what to test}
+- Fix a bug: {how to reproduce, where to look}
+- Run tests: {exact command}
+```
+
+## 4. AGENTS.md
+
+Instructions for any AI coding agent (Copilot, Cursor, Codex, etc.):
+
+```
+# {Project Name}
+
+## Overview
+
+{What this project does — one paragraph}
+
+## Quick Start
+
+{Build and test in 3 commands or less}
+
+## Key Files
+
+{List each file with a one-line description of its purpose}
+
+## How to Extend
+
+{Where to add new functionality, what interfaces/patterns to follow}
+
+## Testing
+
+{How to run tests, how to add new tests, what the test strategy is}
+```
+
+Read the source code carefully. Every example, API signature, and file description must match the actual implementation.

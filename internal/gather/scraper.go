@@ -12,8 +12,17 @@ type Item struct {
 	Author string
 }
 
-// Scraper is the interface every source (HN, Reddit, …) must satisfy.
+// Scraper is the interface every source must satisfy.
 type Scraper interface {
 	Name() string
 	Scrape(ctx context.Context) ([]Item, error)
+}
+
+// truncate shortens s to at most maxLen runes.
+func truncate(s string, maxLen int) string {
+	runes := []rune(s)
+	if len(runes) <= maxLen {
+		return s
+	}
+	return string(runes[:maxLen])
 }

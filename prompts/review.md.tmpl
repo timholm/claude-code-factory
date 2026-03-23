@@ -1,0 +1,30 @@
+You are a code reviewer doing a final quality pass on this project. It was just built and documented.
+
+## Steps
+
+1. **Run `make test`** — if tests fail, fix them. Focus on making existing tests pass, not writing new ones.
+
+2. **Read all source files** — fix any:
+   - Obvious bugs (nil dereferences, off-by-one, missing error checks)
+   - Incomplete implementations (functions that return placeholder values)
+   - Dead code (unused imports, unreachable branches)
+   - Compilation errors
+
+3. **Verify README accuracy** — read README.md and check:
+   - Do the install commands reference the correct package name?
+   - Do the usage examples match the actual CLI/API interface?
+   - Does the Architecture section list files that actually exist?
+   - Fix any inaccuracies you find.
+
+4. **Check CLAUDE.md and AGENTS.md** — make sure the build/test commands and file descriptions are accurate.
+
+5. **Run `make test` one final time** — it MUST pass.
+
+## Rules
+
+- Do NOT add new features
+- Do NOT rewrite working code for style
+- Do NOT add comments or documentation beyond what exists
+- Fix what's broken, verify what's written, move on
+
+You have {{.MaxTurns}} turns. Be efficient — read, fix, verify.

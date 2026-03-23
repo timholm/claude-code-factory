@@ -17,11 +17,14 @@ func Scaffold(dir, name, language, problem, sourceURL, solution, files string, l
 		return fmt.Errorf("scaffold: mkdir %s: %w", dir, err)
 	}
 
-	// Always generate LICENSE and SPEC.md
+	// Always generate LICENSE, SPEC.md, and CLAUDE.md
 	if err := writeLicense(dir, ghUser); err != nil {
 		return err
 	}
 	if err := writeSpec(dir, name, language, problem, sourceURL, solution, files, lines); err != nil {
+		return err
+	}
+	if err := writeClaudeMD(dir, name, language); err != nil {
 		return err
 	}
 
@@ -240,6 +243,29 @@ lint:
 tmp/
 `
 	return writeFile(filepath.Join(dir, ".gitignore"), gitignore)
+}
+
+// writeClaudeMD writes a CLAUDE.md that helps Claude Code orient quickly in the workspace.
+// This reduces wasted turns — Claude reads CLAUDE.md automatically on startup.
+func writeClaudeMD(dir, name, language string) error {
+	testCmd := "make test"
+	buildCmd := "make build"
+
+	content := fmt.Sprintf(`# %s
+
+## Build & Test
+- Build: %s
+- Test: %s
+- Language: %s
+
+## Instructions
+- Read SPEC.md for full requirements
+- Implement all functionality described in SPEC.md
+- Write real tests that pass
+- Run make test before finishing
+`, name, buildCmd, testCmd, language)
+
+	return writeFile(filepath.Join(dir, "CLAUDE.md"), content)
 }
 
 // writeFile writes content to path, creating parent directories as needed.
