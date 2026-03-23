@@ -20,8 +20,6 @@ spec:
         app.kubernetes.io/component: database
         app.kubernetes.io/part-of: claude-code-factory
     spec:
-      nodeSelector:
-        kubernetes.io/hostname: cm3588-plus
       terminationGracePeriodSeconds: 60
       securityContext:
         runAsUser: 999
@@ -57,11 +55,11 @@ spec:
               value: /var/lib/postgresql/data/pgdata
           resources:
             requests:
-              memory: "2Gi"
-              cpu: "500m"
+              memory: "512Mi"
+              cpu: "100m"
             limits:
-              memory: "4Gi"
-              cpu: "2000m"
+              memory: "2Gi"
+              cpu: "1000m"
           volumeMounts:
             - name: postgres-data
               mountPath: /var/lib/postgresql/data

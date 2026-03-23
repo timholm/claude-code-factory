@@ -12,7 +12,7 @@ import (
 // All languages get LICENSE (MIT) and SPEC.md.
 // Language-specific files are generated based on the language parameter.
 // Unknown languages fall back to bash behaviour.
-func Scaffold(dir, name, language, problem, sourceURL, solution, files string, lines int, ghUser string) error {
+func Scaffold(dir, name, language, problem, sourceURL, solution, files string, lines int, ghUser, sourcePapers, sourceRepos, marketAnalysis string) error {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return fmt.Errorf("scaffold: mkdir %s: %w", dir, err)
 	}
@@ -21,7 +21,7 @@ func Scaffold(dir, name, language, problem, sourceURL, solution, files string, l
 	if err := writeLicense(dir, ghUser); err != nil {
 		return err
 	}
-	if err := writeSpec(dir, name, language, problem, sourceURL, solution, files, lines); err != nil {
+	if err := writeSpec(dir, name, language, problem, sourceURL, solution, files, lines, sourcePapers, sourceRepos, marketAnalysis); err != nil {
 		return err
 	}
 	if err := writeClaudeMD(dir, name, language); err != nil {
@@ -75,7 +75,7 @@ SOFTWARE.
 }
 
 // writeSpec writes SPEC.md with project metadata and the problem/solution.
-func writeSpec(dir, name, language, problem, sourceURL, solution, files string, lines int) error {
+func writeSpec(dir, name, language, problem, sourceURL, solution, files string, lines int, sourcePapers, sourceRepos, marketAnalysis string) error {
 	content := fmt.Sprintf(`# %s
 
 **Language:** %s
@@ -94,6 +94,18 @@ func writeSpec(dir, name, language, problem, sourceURL, solution, files string, 
 
 %s
 `, name, language, sourceURL, lines, problem, solution, files)
+
+	// Add research references if present (from idea-engine)
+	if sourcePapers != "" && sourcePapers != "[]" {
+		content += fmt.Sprintf("\n## Research Papers\n\nThis product is based on the following arXiv papers:\n%s\n", sourcePapers)
+	}
+	if sourceRepos != "" && sourceRepos != "[]" {
+		content += fmt.Sprintf("\n## Reference Implementations\n\nExisting GitHub repos that informed this design:\n%s\n", sourceRepos)
+	}
+	if marketAnalysis != "" {
+		content += fmt.Sprintf("\n## Market Analysis\n\n%s\n", marketAnalysis)
+	}
+
 	return writeFile(filepath.Join(dir, "SPEC.md"), content)
 }
 

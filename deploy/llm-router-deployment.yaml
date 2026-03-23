@@ -1,0 +1,159 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: llm-router-config
+  namespace: factory
+  labels:
+    app.kubernetes.io/name: llm-router
+    app.kubernetes.io/component: router
+    app.kubernetes.io/part-of: claude-code-factory
+data:
+  config.yaml: |
+    # llm-router configuration for factory namespace
+    # Authentication: auto-discovers Claude Code Max OAuth credentials
+    # from ~/.claude/.credentials.json (mounted via init container)
+
+    models:
+      # Tier 1: Fast + cheap for simple tasks
+      - name: claude-haiku
+        provider: anthropic
+        model: claude-haiku-4-5-20251001
+        base_url: https://api.anthropic.com
+        cost_per_1k_in: 0.0008
+        cost_per_1k_out: 0.004
+        max_tokens: 200000
+        tier: 1
+
+      # Tier 2: Best balance of speed + quality
+      - name: claude-sonnet
+        provider: anthropic
+        model: claude-haiku-4-5-20251001
+        base_url: https://api.anthropic.com
+        cost_per_1k_in: 0.003
+        cost_per_1k_out: 0.015
+        max_tokens: 200000
+        tier: 2
+
+      # Tier 3: Most capable for complex reasoning
+      - name: claude-opus
+        provider: anthropic
+        model: claude-haiku-4-5-20251001
+        base_url: https://api.anthropic.com
+        cost_per_1k_in: 0.015
+        cost_per_1k_out: 0.075
+        max_tokens: 200000
+        tier: 3
+
+    classifier:
+      tier1_max: 25
+      tier2_max: 85
+
+    cache:
+      enabled: true
+      max_size: 1000
+      ttl_sec: 300
+      similarity_thresh: 0.85
+
+    learned:
+      threshold: 0.5
+
+    server:
+      read_timeout_sec: 30
+      write_timeout_sec: 120
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llm-router
+  namespace: factory
+  labels:
+    app.kubernetes.io/name: llm-router
+    app.kubernetes.io/component: router
+    app.kubernetes.io/part-of: claude-code-factory
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: llm-router
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: llm-router
+        app.kubernetes.io/component: router
+    spec:
+      imagePullSecrets:
+        - name: ghcr-login
+      initContainers:
+        - name: setup-claude-auth
+          image: busybox
+          command: ["sh", "-c", "mkdir -p /home/factory/.claude && cp /tmp/claude-creds/credentials.json /home/factory/.claude/.credentials.json && chmod 600 /home/factory/.claude/.credentials.json"]
+          volumeMounts:
+            - name: claude-creds
+              mountPath: /tmp/claude-creds
+              readOnly: true
+            - name: claude-home
+              mountPath: /home/factory/.claude
+      containers:
+        - name: llm-router
+          image: ghcr.io/timholm/llm-router:latest
+          args: ["--config", "/etc/llm-router/config.yaml", "--addr", ":8080"]
+          ports:
+            - containerPort: 8080
+              name: http
+              protocol: TCP
+          env:
+            - name: HOME
+              value: /home/factory
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "10m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          volumeMounts:
+            - name: config
+              mountPath: /etc/llm-router
+              readOnly: true
+            - name: claude-home
+              mountPath: /home/factory/.claude
+      volumes:
+        - name: config
+          configMap:
+            name: llm-router-config
+        - name: claude-creds
+          secret:
+            secretName: claude-credentials
+        - name: claude-home
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: llm-router
+  namespace: factory
+  labels:
+    app.kubernetes.io/name: llm-router
+    app.kubernetes.io/component: router
+    app.kubernetes.io/part-of: claude-code-factory
+spec:
+  selector:
+    app.kubernetes.io/name: llm-router
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+      name: http
+  type: ClusterIP

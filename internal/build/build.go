@@ -169,8 +169,8 @@ func processSpec(ctx context.Context, reg *registry.Registry, spec *registry.Bui
 		return handleFailure(reg, spec, fmt.Errorf("mkdir workspace: %w", err))
 	}
 
-	// Scaffold boilerplate.
-	if err := Scaffold(workDir, spec.Name, spec.Language, spec.Problem, spec.SourceURL, spec.Solution, spec.Files, spec.EstimatedLines, ghUser); err != nil {
+	// Scaffold boilerplate (includes SPEC.md with references).
+	if err := Scaffold(workDir, spec.Name, spec.Language, spec.Problem, spec.SourceURL, spec.Solution, spec.Files, spec.EstimatedLines, ghUser, spec.SourcePapers, spec.SourceRepos, spec.MarketAnalysis); err != nil {
 		return handleFailure(reg, spec, fmt.Errorf("scaffold: %w", err))
 	}
 
@@ -194,14 +194,13 @@ func processSpec(ctx context.Context, reg *registry.Registry, spec *registry.Bui
 		}
 
 		// Invoke Claude with rate-limit retry and phase-specific optimizations.
-		// When routerURL is set, ALL API calls go through llm-router which handles
-		// model selection, caching, dedup, health tracking, and cost tracking.
+		// Build phases use Claude Code's native auth (higher rate limits).
+		// The router is used only for analyze + idea-engine (direct API calls).
 		opts := ClaudeOpts{
 			Prompt:       prompt,
 			MaxTurns:     phase.MaxTurns,
 			Model:        phase.Model,
 			AllowedTools: phase.AllowedTools,
-			RouterURL:    routerURL,
 		}
 		result, err := invokeWithRateLimitRetryOpts(ctx, claudeBinary, workDir, opts)
 		if err != nil {

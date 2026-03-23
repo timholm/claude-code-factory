@@ -9,7 +9,7 @@ import (
 func scaffold(t *testing.T, language string) string {
 	t.Helper()
 	dir := t.TempDir()
-	err := Scaffold(dir, "testproj", language, "solve X", "https://example.com", "use Y", "[\"main.go\"]", 100, "octocat")
+	err := Scaffold(dir, "testproj", language, "solve X", "https://example.com", "use Y", "[\"main.go\"]", 100, "octocat", "", "", "")
 	if err != nil {
 		t.Fatalf("Scaffold(%s): %v", language, err)
 	}

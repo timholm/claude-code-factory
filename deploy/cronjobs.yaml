@@ -1,178 +1,14 @@
-apiVersion: batch/v1
-kind: CronJob
-metadata:
-  name: factory-gather
-  namespace: factory
-spec:
-  schedule: "0 * * * *"
-  jobTemplate:
-    spec:
-      template:
-        spec:
-          restartPolicy: OnFailure
-          imagePullSecrets:
-            - name: ghcr-login
-          containers:
-            - name: factory
-              image: ghcr.io/timholm/claude-code-factory:latest
-              args: ["gather"]
-              envFrom:
-                - secretRef:
-                    name: factory-secrets
-              volumeMounts:
-                - name: factory-data
-                  mountPath: /srv/factory
-          volumes:
-            - name: factory-data
-              persistentVolumeClaim:
-                claimName: factory-data
----
-apiVersion: batch/v1
-kind: CronJob
-metadata:
-  name: factory-analyze
-  namespace: factory
-spec:
-  schedule: "0 6 * * *"
-  jobTemplate:
-    spec:
-      template:
-        spec:
-          restartPolicy: OnFailure
-          imagePullSecrets:
-            - name: ghcr-login
-          nodeSelector:
-            kubernetes.io/hostname: cm3588-plus
-          initContainers:
-            - name: setup-claude-auth
-              image: busybox
-              command: ["sh", "-c", "mkdir -p /home/factory/.claude && cp /tmp/claude-creds/credentials.json /home/factory/.claude/.credentials.json && chmod 600 /home/factory/.claude/.credentials.json"]
-              volumeMounts:
-                - name: claude-creds
-                  mountPath: /tmp/claude-creds
-                  readOnly: true
-                - name: claude-home
-                  mountPath: /home/factory/.claude
-          containers:
-            - name: factory
-              image: ghcr.io/timholm/claude-code-factory:latest
-              args: ["analyze"]
-              env:
-                - name: HOME
-                  value: /home/factory
-              envFrom:
-                - secretRef:
-                    name: factory-secrets
-              volumeMounts:
-                - name: factory-data
-                  mountPath: /srv/factory
-                - name: git-repos
-                  mountPath: /srv/git
-                - name: claude-home
-                  mountPath: /home/factory/.claude
-          volumes:
-            - name: factory-data
-              persistentVolumeClaim:
-                claimName: factory-data
-            - name: git-repos
-              persistentVolumeClaim:
-                claimName: git-repos
-            - name: claude-creds
-              secret:
-                secretName: claude-credentials
-            - name: claude-home
-              emptyDir: {}
----
-apiVersion: batch/v1
-kind: CronJob
-metadata:
-  name: factory-build
-  namespace: factory
-spec:
-  schedule: "30 6 * * *"
-  jobTemplate:
-    spec:
-      activeDeadlineSeconds: 57600
-      template:
-        spec:
-          restartPolicy: OnFailure
-          imagePullSecrets:
-            - name: ghcr-login
-          nodeSelector:
-            kubernetes.io/hostname: cm3588-plus
-          initContainers:
-            - name: setup-claude-auth
-              image: busybox
-              command: ["sh", "-c", "mkdir -p /home/factory/.claude && cp /tmp/claude-creds/credentials.json /home/factory/.claude/.credentials.json && chmod 600 /home/factory/.claude/.credentials.json"]
-              volumeMounts:
-                - name: claude-creds
-                  mountPath: /tmp/claude-creds
-                  readOnly: true
-                - name: claude-home
-                  mountPath: /home/factory/.claude
-          containers:
-            - name: factory
-              image: ghcr.io/timholm/claude-code-factory:latest
-              args: ["build"]
-              env:
-                - name: HOME
-                  value: /home/factory
-              envFrom:
-                - secretRef:
-                    name: factory-secrets
-              volumeMounts:
-                - name: factory-data
-                  mountPath: /srv/factory
-                - name: git-repos
-                  mountPath: /srv/git
-                - name: tmp-builds
-                  mountPath: /tmp/factory-build
-                - name: claude-home
-                  mountPath: /home/factory/.claude
-          volumes:
-            - name: factory-data
-              persistentVolumeClaim:
-                claimName: factory-data
-            - name: git-repos
-              persistentVolumeClaim:
-                claimName: git-repos
-            - name: tmp-builds
-              emptyDir:
-                sizeLimit: 10Gi
-            - name: claude-creds
-              secret:
-                secretName: claude-credentials
-            - name: claude-home
-              emptyDir: {}
----
-apiVersion: batch/v1
-kind: CronJob
-metadata:
-  name: factory-mirror
-  namespace: factory
-spec:
-  schedule: "0 23 * * *"
-  jobTemplate:
-    spec:
-      template:
-        spec:
-          restartPolicy: OnFailure
-          imagePullSecrets:
-            - name: ghcr-login
-          containers:
-            - name: factory
-              image: ghcr.io/timholm/claude-code-factory:latest
-              args: ["mirror"]
-              envFrom:
-                - secretRef:
-                    name: factory-secrets
-              volumeMounts:
-                - name: git-repos
-                  mountPath: /srv/git
-          volumes:
-            - name: git-repos
-              persistentVolumeClaim:
-                claimName: git-repos
+# =============================================================================
+# Autonomous Factory Pipeline — CronJobs
+# =============================================================================
+# Schedule:
+#   04:00  archive-sync    — Sync arXiv papers via OAI-PMH + embeddings
+#   05:00  idea-engine     — Generate product specs from research
+#   05:30  factory-import  — Import specs from idea-engine's Postgres
+#   06:00  factory-build   — Build software from specs (16h deadline)
+#   23:00  factory-mirror  — Push built repos to GitHub
+# =============================================================================
+
 ---
 apiVersion: batch/v1
 kind: CronJob
@@ -201,8 +37,6 @@ spec:
           restartPolicy: OnFailure
           imagePullSecrets:
             - name: ghcr-login
-          nodeSelector:
-            kubernetes.io/hostname: cm3588-plus
           containers:
             - name: archive-sync
               image: ghcr.io/timholm/arxiv-archive:latest
@@ -234,6 +68,7 @@ spec:
             - name: arxiv-data
               persistentVolumeClaim:
                 claimName: factory-data
+
 ---
 apiVersion: batch/v1
 kind: CronJob
@@ -264,11 +99,23 @@ spec:
             - name: ghcr-login
           nodeSelector:
             kubernetes.io/hostname: cm3588-plus
+          initContainers:
+            - name: setup-claude-auth
+              image: busybox
+              command: ["sh", "-c", "mkdir -p /home/factory/.claude && cp /tmp/claude-creds/credentials.json /home/factory/.claude/.credentials.json && chmod 600 /home/factory/.claude/.credentials.json"]
+              volumeMounts:
+                - name: claude-creds
+                  mountPath: /tmp/claude-creds
+                  readOnly: true
+                - name: claude-home
+                  mountPath: /home/factory/.claude
           containers:
             - name: idea-engine
               image: ghcr.io/timholm/idea-engine:latest
               args: ["run"]
               env:
+                - name: HOME
+                  value: /home/factory
                 - name: POSTGRES_URL
                   valueFrom:
                     secretKeyRef:
@@ -280,7 +127,7 @@ spec:
                       name: factory-secrets
                       key: LLM_ROUTER_URL
                 - name: ARCHIVE_URL
-                  value: "http://arxiv-archive.factory.svc:8080"
+                  value: "http://archive-serve.factory.svc:9090"
                 - name: GITHUB_TOKEN
                   valueFrom:
                     secretKeyRef:
@@ -289,7 +136,237 @@ spec:
               resources:
                 requests:
                   memory: "512Mi"
-                  cpu: "250m"
+                  cpu: "500m"
                 limits:
                   memory: "2Gi"
-                  cpu: "1000m"
+                  cpu: "2000m"
+              volumeMounts:
+                - name: claude-home
+                  mountPath: /home/factory/.claude
+          volumes:
+            - name: claude-creds
+              secret:
+                secretName: claude-credentials
+            - name: claude-home
+              emptyDir: {}
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: factory-import
+  namespace: factory
+  labels:
+    app.kubernetes.io/name: factory-import
+    app.kubernetes.io/component: import
+    app.kubernetes.io/part-of: claude-code-factory
+spec:
+  schedule: "30 5 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 1800
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: factory-import
+            app.kubernetes.io/component: import
+        spec:
+          restartPolicy: OnFailure
+          imagePullSecrets:
+            - name: ghcr-login
+          containers:
+            - name: factory-import
+              image: ghcr.io/timholm/claude-code-factory:latest
+              args: ["import-from-db"]
+              env:
+                - name: POSTGRES_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: postgres-credentials
+                      key: POSTGRES_URL
+                - name: LLM_ROUTER_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: factory-secrets
+                      key: LLM_ROUTER_URL
+                - name: GITHUB_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: factory-secrets
+                      key: GITHUB_TOKEN
+              envFrom:
+                - secretRef:
+                    name: factory-secrets
+              resources:
+                requests:
+                  memory: "256Mi"
+                  cpu: "100m"
+                limits:
+                  memory: "512Mi"
+                  cpu: "500m"
+              volumeMounts:
+                - name: factory-data
+                  mountPath: /srv/factory
+          volumes:
+            - name: factory-data
+              persistentVolumeClaim:
+                claimName: factory-data
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: factory-build
+  namespace: factory
+  labels:
+    app.kubernetes.io/name: factory-build
+    app.kubernetes.io/component: build
+    app.kubernetes.io/part-of: claude-code-factory
+spec:
+  schedule: "0 6 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 57600
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: factory-build
+            app.kubernetes.io/component: build
+        spec:
+          restartPolicy: OnFailure
+          imagePullSecrets:
+            - name: ghcr-login
+          nodeSelector:
+            kubernetes.io/hostname: cm3588-plus
+          initContainers:
+            - name: setup-claude-auth
+              image: busybox
+              command: ["sh", "-c", "mkdir -p /home/factory/.claude && cp /tmp/claude-creds/credentials.json /home/factory/.claude/.credentials.json && chmod 600 /home/factory/.claude/.credentials.json"]
+              volumeMounts:
+                - name: claude-creds
+                  mountPath: /tmp/claude-creds
+                  readOnly: true
+                - name: claude-home
+                  mountPath: /home/factory/.claude
+          containers:
+            - name: factory
+              image: ghcr.io/timholm/claude-code-factory:latest
+              args: ["build"]
+              env:
+                - name: HOME
+                  value: /home/factory
+                - name: BUILD_WORKERS
+                  value: "4"
+                - name: GITHUB_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: factory-secrets
+                      key: GITHUB_TOKEN
+              envFrom:
+                - secretRef:
+                    name: factory-secrets
+              resources:
+                requests:
+                  memory: "2Gi"
+                  cpu: "2000m"
+                limits:
+                  memory: "8Gi"
+                  cpu: "4000m"
+              volumeMounts:
+                - name: factory-data
+                  mountPath: /srv/factory
+                - name: git-repos
+                  mountPath: /srv/git
+                - name: tmp-builds
+                  mountPath: /tmp/factory-build
+                - name: claude-home
+                  mountPath: /home/factory/.claude
+          volumes:
+            - name: factory-data
+              persistentVolumeClaim:
+                claimName: factory-data
+            - name: git-repos
+              persistentVolumeClaim:
+                claimName: git-repos
+            - name: tmp-builds
+              emptyDir:
+                sizeLimit: 10Gi
+            - name: claude-creds
+              secret:
+                secretName: claude-credentials
+            - name: claude-home
+              emptyDir: {}
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: factory-mirror
+  namespace: factory
+  labels:
+    app.kubernetes.io/name: factory-mirror
+    app.kubernetes.io/component: mirror
+    app.kubernetes.io/part-of: claude-code-factory
+spec:
+  schedule: "0 23 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 3600
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            app.kubernetes.io/name: factory-mirror
+            app.kubernetes.io/component: mirror
+        spec:
+          restartPolicy: OnFailure
+          imagePullSecrets:
+            - name: ghcr-login
+          containers:
+            - name: factory
+              image: ghcr.io/timholm/claude-code-factory:latest
+              args: ["mirror"]
+              env:
+                - name: POSTGRES_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: postgres-credentials
+                      key: POSTGRES_URL
+                - name: LLM_ROUTER_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: factory-secrets
+                      key: LLM_ROUTER_URL
+                - name: GITHUB_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: factory-secrets
+                      key: GITHUB_TOKEN
+              envFrom:
+                - secretRef:
+                    name: factory-secrets
+              resources:
+                requests:
+                  memory: "256Mi"
+                  cpu: "100m"
+                limits:
+                  memory: "1Gi"
+                  cpu: "500m"
+              volumeMounts:
+                - name: git-repos
+                  mountPath: /srv/git
+          volumes:
+            - name: git-repos
+              persistentVolumeClaim:
+                claimName: git-repos
