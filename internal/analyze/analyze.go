@@ -118,11 +118,11 @@ func Run(ctx context.Context, reg *registry.Registry, claudeBinary, promptsDir, 
 
 	var raw string
 	if routerURL != "" {
-		// Try routing through llm-router — gets caching, model routing, dedup.
+		// Route through llm-router — gets semantic caching, model routing, dedup,
+		// health tracking, cost tracking. Router auto-discovers OAuth credentials.
 		fmt.Println("analyze: routing through llm-router")
 		raw, err = callRouter(ctx, routerURL, prompt)
 		if err != nil {
-			// Fallback to Claude CLI if router fails (e.g., no API key — using OAuth).
 			fmt.Printf("analyze: router failed (%v), falling back to Claude CLI\n", err)
 			raw, err = callClaude(ctx, claudeBinary, prompt)
 		}

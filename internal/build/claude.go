@@ -20,14 +20,25 @@ type ClaudeResult struct {
 type ClaudeOpts struct {
 	Prompt         string
 	MaxTurns       int
-	Model          string   // optional: "sonnet", "haiku", "opus"
+	Model          string   // optional: "sonnet", "haiku", "opus" (only used when no router)
 	SystemPrompt   string   // optional: separate system instructions
 	AllowedTools   []string // optional: restrict available tools
+	RouterURL      string   // optional: route all API calls through llm-router
 }
 
 // InvokeClaude runs Claude headlessly with the given options in workDir.
 // It sets CLAUDE_CODE_DISABLE_AUTO_MEMORY=1 and uses --output-format text.
-// Rate-limit detection checks for the strings "usage limit", "rate limit", or "capacity".
+//
+// When RouterURL is set, ALL of Claude Code's API calls flow through
+// llm-router by setting ANTHROPIC_BASE_URL. The router then handles:
+//   - Model selection (classifier picks cheapest capable model)
+//   - Semantic caching (similar prompts return cached responses)
+//   - Request deduplication (parallel builds don't double-pay)
+//   - Health tracking (marks degraded/down backends)
+//   - Cost tracking (per-request cost attribution)
+//   - Feedback-driven threshold calibration
+//
+// When RouterURL is empty, uses --model flag for direct model selection.
 func InvokeClaude(ctx context.Context, binary, workDir, prompt string, maxTurns int) (*ClaudeResult, error) {
 	return InvokeClaudeWithOpts(ctx, binary, workDir, ClaudeOpts{
 		Prompt:   prompt,
@@ -36,8 +47,6 @@ func InvokeClaude(ctx context.Context, binary, workDir, prompt string, maxTurns 
 }
 
 // InvokeClaudeWithOpts runs Claude headlessly with full options control.
-// This is the optimized path — allows model selection, tool restrictions,
-// and system prompts for maximum efficiency per phase.
 func InvokeClaudeWithOpts(ctx context.Context, binary, workDir string, opts ClaudeOpts) (*ClaudeResult, error) {
 	args := []string{
 		"-p", opts.Prompt,
@@ -46,8 +55,9 @@ func InvokeClaudeWithOpts(ctx context.Context, binary, workDir string, opts Clau
 		"--output-format", "text",
 	}
 
-	// Model selection: use cheaper models for simple tasks.
-	if opts.Model != "" {
+	// When routing through llm-router, DON'T pass --model — let the router classify
+	// and pick the cheapest capable model. When NOT routing, use --model for direct control.
+	if opts.RouterURL == "" && opts.Model != "" {
 		args = append(args, "--model", opts.Model)
 	}
 
@@ -63,7 +73,16 @@ func InvokeClaudeWithOpts(ctx context.Context, binary, workDir string, opts Clau
 
 	cmd := exec.CommandContext(ctx, binary, args...)
 	cmd.Dir = workDir
-	cmd.Env = append(os.Environ(), "CLAUDE_CODE_DISABLE_AUTO_MEMORY=1")
+
+	// Build environment.
+	env := append(os.Environ(), "CLAUDE_CODE_DISABLE_AUTO_MEMORY=1")
+
+	// Route all Claude Code API calls through llm-router.
+	if opts.RouterURL != "" {
+		env = append(env, "ANTHROPIC_BASE_URL="+strings.TrimRight(opts.RouterURL, "/"))
+	}
+
+	cmd.Env = env
 
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
