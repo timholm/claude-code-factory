@@ -52,7 +52,9 @@ func (r *Registry) DequeueNext() (*BuildSpec, error) {
 	var s BuildSpec
 	err = tx.QueryRow(
 		`SELECT id, name, problem, source_url, solution, language, files,
-		        estimated_lines, status, attempts, COALESCE(error_log, '')
+		        estimated_lines, status, attempts, COALESCE(error_log, ''),
+		        COALESCE(source_papers, ''), COALESCE(source_repos, ''),
+		        COALESCE(market_analysis, '')
 		 FROM build_queue
 		 WHERE status = 'queued'
 		 ORDER BY estimated_lines ASC, id ASC
@@ -60,6 +62,7 @@ func (r *Registry) DequeueNext() (*BuildSpec, error) {
 	).Scan(
 		&s.ID, &s.Name, &s.Problem, &s.SourceURL, &s.Solution, &s.Language,
 		&s.Files, &s.EstimatedLines, &s.Status, &s.Attempts, &s.ErrorLog,
+		&s.SourcePapers, &s.SourceRepos, &s.MarketAnalysis,
 	)
 	if err == sql.ErrNoRows {
 		return nil, nil

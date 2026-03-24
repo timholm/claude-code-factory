@@ -1,6 +1,7 @@
 package build
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -95,12 +96,13 @@ func writeSpec(dir, name, language, problem, sourceURL, solution, files string, 
 %s
 `, name, language, sourceURL, lines, problem, solution, files)
 
-	// Add research references if present (from idea-engine)
-	if sourcePapers != "" && sourcePapers != "[]" {
-		content += fmt.Sprintf("\n## Research Papers\n\nThis product is based on the following arXiv papers:\n%s\n", sourcePapers)
+	// Add research references if present (from idea-engine).
+	// Parse JSON arrays into readable markdown bullet lists.
+	if papers := formatJSONList(sourcePapers); papers != "" {
+		content += fmt.Sprintf("\n## Research Papers\n\nThis product is based on the following research papers. READ these to understand the technique you are implementing:\n\n%s\n", papers)
 	}
-	if sourceRepos != "" && sourceRepos != "[]" {
-		content += fmt.Sprintf("\n## Reference Implementations\n\nExisting GitHub repos that informed this design:\n%s\n", sourceRepos)
+	if repos := formatJSONList(sourceRepos); repos != "" {
+		content += fmt.Sprintf("\n## Reference Implementations\n\nExisting repos that informed this design. STUDY these for prior art and patterns to improve on:\n\n%s\n", repos)
 	}
 	if marketAnalysis != "" {
 		content += fmt.Sprintf("\n## Market Analysis\n\n%s\n", marketAnalysis)
@@ -278,6 +280,37 @@ func writeClaudeMD(dir, name, language string) error {
 `, name, buildCmd, testCmd, language)
 
 	return writeFile(filepath.Join(dir, "CLAUDE.md"), content)
+}
+
+// formatJSONList takes a string that is either a JSON array of strings (e.g.
+// '["https://arxiv.org/abs/1234","https://arxiv.org/abs/5678"]') or already a
+// plain text list, and returns a markdown bullet list. Returns "" if empty.
+func formatJSONList(raw string) string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" || raw == "[]" || raw == "null" {
+		return ""
+	}
+
+	// Try to parse as JSON array first.
+	var items []string
+	if err := json.Unmarshal([]byte(raw), &items); err == nil {
+		if len(items) == 0 {
+			return ""
+		}
+		var b strings.Builder
+		for _, item := range items {
+			item = strings.TrimSpace(item)
+			if item != "" {
+				b.WriteString("- ")
+				b.WriteString(item)
+				b.WriteByte('\n')
+			}
+		}
+		return b.String()
+	}
+
+	// Not valid JSON — return as-is (it may already be formatted).
+	return raw
 }
 
 // writeFile writes content to path, creating parent directories as needed.

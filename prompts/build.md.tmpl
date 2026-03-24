@@ -17,11 +17,11 @@ Build a COMPLETE, WORKING implementation. Not a scaffold — real code that a de
 
 4. **Working install command** — `go install github.com/{{.GitHubUser}}/{name}@latest` must be a valid install path. Make sure the module path in go.mod matches.
 
-5. **Read SPEC.md carefully** — it may contain:
-   - A "Research Papers" section listing arXiv papers this product is based on
-   - A "Reference Implementations" section listing GitHub repos that informed the design
-   - A "Market Analysis" section describing who pays for this
-   Use these to guide your implementation. The papers describe techniques to implement. The repos show prior art to improve on.
+5. **Read SPEC.md carefully** — it contains Research Papers and Reference Implementations sections. These are CRITICAL:
+   - **Research Papers**: arXiv papers describing the technique you must implement. Read each URL. The algorithms, architectures, and methods described in these papers ARE the core of what you're building. Don't invent your own approach — implement what the papers describe.
+   - **Reference Implementations**: GitHub repos showing prior art. Study their architecture, API design, and patterns. Learn from their mistakes. Your implementation should be BETTER than these, not a copy — but informed by them.
+   - **Market Analysis**: describes who pays for this and why. Use this to prioritize features.
+   If these sections exist, they are the most important part of the spec. Code that ignores its research papers ships a toy, not a tool.
 
 ## What Good Code Looks Like
 
