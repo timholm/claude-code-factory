@@ -74,8 +74,18 @@ func InvokeClaudeWithOpts(ctx context.Context, binary, workDir string, opts Clau
 	cmd := exec.CommandContext(ctx, binary, args...)
 	cmd.Dir = workDir
 
-	// Build environment.
-	env := append(os.Environ(), "CLAUDE_CODE_DISABLE_AUTO_MEMORY=1")
+	// Build environment — strip secrets so Claude can't embed them in generated code.
+	var env []string
+	for _, e := range os.Environ() {
+		// Don't pass tokens/keys to Claude Code
+		if strings.HasPrefix(e, "GITHUB_TOKEN=") ||
+			strings.HasPrefix(e, "ANTHROPIC_API_KEY=") ||
+			strings.HasPrefix(e, "OPENAI_API_KEY=") {
+			continue
+		}
+		env = append(env, e)
+	}
+	env = append(env, "CLAUDE_CODE_DISABLE_AUTO_MEMORY=1")
 
 	// Route all Claude Code API calls through llm-router.
 	if opts.RouterURL != "" {
