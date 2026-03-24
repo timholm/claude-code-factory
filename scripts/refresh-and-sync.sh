@@ -22,11 +22,15 @@ fi
 
 # Sync to cluster
 if [ -f "$CREDS" ]; then
+    kubectl delete secret claude-credentials --namespace "$NAMESPACE" >> "$LOG" 2>&1 || true
     kubectl create secret generic claude-credentials \
         --namespace "$NAMESPACE" \
-        --from-file=credentials.json="$CREDS" \
-        --dry-run=client -o yaml | kubectl apply -f - >> "$LOG" 2>&1
-    echo "$(date): Credentials synced successfully" >> "$LOG"
+        --from-file=credentials.json="$CREDS" >> "$LOG" 2>&1
+    # Restart pods that use Claude to pick up fresh creds
+    kubectl rollout restart deployment idea-engine-loop --namespace "$NAMESPACE" >> "$LOG" 2>&1 || true
+    kubectl rollout restart deployment factory-pipeline --namespace "$NAMESPACE" >> "$LOG" 2>&1 || true
+    kubectl rollout restart deployment factory-pilot --namespace "$NAMESPACE" >> "$LOG" 2>&1 || true
+    echo "$(date): Credentials synced + pods restarted" >> "$LOG"
 else
     echo "$(date): No credentials file found" >> "$LOG"
 fi
