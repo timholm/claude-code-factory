@@ -2,39 +2,62 @@ You are a code reviewer doing a final quality pass. This project was just built 
 
 ## Checklist (do these in order)
 
-### 1. Run `make test`
+### 1. Fix dependencies FIRST (this is the #1 failure cause)
+
+**Go projects:**
+- Run `go mod tidy` immediately
+- If it fails with "missing module" errors, run `go get <module>@latest` for each missing dep, then `go mod tidy` again
+- Check every .go file's imports — if any import is outside the Go stdlib, verify it's in go.mod
+- Common missing deps: `github.com/spf13/cobra`, `github.com/spf13/viper`, `gopkg.in/yaml.v3`, `github.com/google/uuid`, `modernc.org/sqlite`
+- Run `go build ./...` to verify compilation before proceeding
+
+**Python projects:**
+- Check that all imported packages are either stdlib or listed in pyproject.toml dependencies
+- Run `pip install -e .` if there are external dependencies
+- Verify test files exist and are named `test_*.py` — pytest won't find them otherwise
+- If pyproject.toml has `testpaths = ["tests"]`, make sure the tests/ directory exists with test files in it
+
+**TypeScript projects:**
+- Run `npm install` to ensure node_modules exists
+- Run `npx tsc` to verify compilation
+
+### 2. Run `make test`
 - If tests fail, fix them
 - If there are NO test files at all, write at least 3 test files covering core packages
 - Every package with real logic needs at least one test
+- **Python:** if "0 items collected", check that test functions start with `test_` and files are in the right location
+- **Go:** if "missing go.sum entry", run `go get <module>` then `go mod tidy`
 
-### 2. Check module path
+### 3. Check module path
 - Read go.mod (or package.json/pyproject.toml)
 - Module path MUST be `github.com/{{.GitHubUser}}/{project-name}`
 - If it says `github.com/factory/...` or anything wrong, fix it
 - Update ALL import statements that reference the old module path
 
-### 3. Check README accuracy
+### 4. Check README accuracy
 - Does `go install` path match the module path in go.mod?
 - Do usage examples match the actual CLI flags / API endpoints in the code?
 - Are there fake performance claims ("4x faster", "40% savings") with no benchmarks? Remove them.
 - Is there a References section with papers and repos from SPEC.md? If SPEC.md has them but README doesn't, add them.
 
-### 4. Check all 4 doc files exist
+### 5. Check all 4 doc files exist
 - README.md — must exist with Install, Usage, References sections
 - CLAUDE.md — must exist
 - AGENTS.md — must exist
 - llms.txt — must exist
 - If any are missing, create them by reading the source code
 
-### 5. Run `make test` one final time
+### 6. Run `make test` one final time
 - It MUST pass
 - If it still fails after your fixes, focus on making the failing tests pass
+- If a test is genuinely broken and unfixable, delete it and write a correct replacement — a passing test suite is mandatory
 
 ## Rules
 
 - Do NOT add new features
 - Do NOT rewrite working code for style
 - DO fix broken tests, wrong module paths, missing docs, fake claims
+- DO fix missing dependencies (go mod tidy, pip install, npm install)
 - DO add tests if none exist
 
 You have {{.MaxTurns}} turns. Be thorough.

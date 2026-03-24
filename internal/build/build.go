@@ -227,6 +227,11 @@ func processSpec(ctx context.Context, reg *registry.Registry, spec *registry.Bui
 		}
 	}
 
+	// Pre-test dependency resolution: fix the #1 failure cause.
+	if err := resolveDeps(workDir, spec.Language); err != nil {
+		log.Printf("build: %s — dep resolution warning: %v", spec.Name, err)
+	}
+
 	// Final gate: make test must pass.
 	if err := runMakeTest(workDir); err != nil {
 		return handleFailure(reg, spec, fmt.Errorf("final make test: %w", err))
@@ -349,6 +354,30 @@ func validateSEO(workDir string) error {
 	}
 	if len(missing) > 0 {
 		return fmt.Errorf("missing SEO files: %s", strings.Join(missing, ", "))
+	}
+	return nil
+}
+
+// resolveDeps runs language-specific dependency resolution before the final test gate.
+// This catches the most common failure: Claude adding imports without running go mod tidy.
+func resolveDeps(workDir, language string) error {
+	switch strings.ToLower(language) {
+	case "go":
+		// Run go mod tidy to resolve any missing go.sum entries.
+		cmd := exec.Command("go", "mod", "tidy")
+		cmd.Dir = workDir
+		if out, err := cmd.CombinedOutput(); err != nil {
+			return fmt.Errorf("go mod tidy: %w: %s", err, truncate(string(out), 300))
+		}
+	case "typescript", "ts":
+		// Run npm install if node_modules doesn't exist.
+		if _, err := os.Stat(filepath.Join(workDir, "node_modules")); os.IsNotExist(err) {
+			cmd := exec.Command("npm", "install")
+			cmd.Dir = workDir
+			if out, err := cmd.CombinedOutput(); err != nil {
+				return fmt.Errorf("npm install: %w: %s", err, truncate(string(out), 300))
+			}
+		}
 	}
 	return nil
 }

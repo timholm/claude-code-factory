@@ -23,6 +23,39 @@ Build a COMPLETE, WORKING implementation. Not a scaffold — real code that a de
    - **Market Analysis**: describes who pays for this and why. Use this to prioritize features.
    If these sections exist, they are the most important part of the spec. Code that ignores its research papers ships a toy, not a tool.
 
+## Dependency Management — THE #1 CAUSE OF BUILD FAILURES
+
+**Go projects:** Every time you add an import for a package outside the standard library, you MUST immediately run:
+```
+go get <package>
+go mod tidy
+```
+Do this AFTER EVERY FILE you write that adds a new import, not at the end. If you batch all your `go get` calls to the end, you will forget one and the build will fail.
+
+Common packages that MUST be explicitly fetched:
+- `github.com/spf13/cobra` — run `go get github.com/spf13/cobra@latest`
+- `github.com/spf13/viper` — run `go get github.com/spf13/viper@latest`
+- `gopkg.in/yaml.v3` — run `go get gopkg.in/yaml.v3@latest`
+- `github.com/google/uuid` — run `go get github.com/google/uuid@latest`
+- `modernc.org/sqlite` — run `go get modernc.org/sqlite@latest`
+
+**Before writing ANY code**, decide if you truly need external deps. The Go stdlib is powerful — `encoding/json`, `net/http`, `database/sql`, `flag`, `os/exec`, `text/template` cover most needs. Fewer deps = fewer failures.
+
+**Python projects:** If your code imports packages not in the Python stdlib, add them to `pyproject.toml` under `[project] dependencies`. Then install them: `pip install -e .` or `pip install <package>`.
+
+**TypeScript projects:** Run `npm install` after adding any dependency to package.json. Run `npx tsc` to verify compilation before moving on.
+
+## Test Verification — THE #2 CAUSE OF BUILD FAILURES
+
+After writing tests, you MUST run `make test` and confirm ALL tests pass. Do not assume they pass. Common test failures:
+- **Tests that mock incorrectly** — test the actual function, not a mock of it
+- **Tests with hardcoded paths/ports** — use temp dirs and free ports
+- **Tests that import the wrong module path** — imports must match go.mod exactly
+- **Python: pytest can't find tests** — test files must be discoverable by pytest (named `test_*.py` or `*_test.py`, in the project root or a `tests/` dir listed in pyproject.toml `testpaths`)
+- **Python: 0 tests collected** — make sure test functions are named `test_*` and test files are in the right location
+
+Run `make test` at least twice during development: once mid-build to catch problems early, once at the end as final verification.
+
 ## What Good Code Looks Like
 
 - Functions do one thing, named clearly
@@ -41,5 +74,13 @@ The workspace already has scaffolding:
 - .gitignore, LICENSE
 
 Build on top of these. Do not delete SPEC.md or CLAUDE.md.
+
+## Build Checklist — Do These Before Your Final Turn
+
+1. All source files written with real implementation (no TODOs)
+2. All external dependencies resolved (`go mod tidy` / `pip install` / `npm install`)
+3. `make test` passes with all tests green
+4. Module path in go.mod matches `github.com/{{.GitHubUser}}/{name}`
+5. At least 3 test files exist with meaningful assertions
 
 You have {{.MaxTurns}} turns. Use them all if needed. Quality over speed.
