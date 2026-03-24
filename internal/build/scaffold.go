@@ -31,7 +31,7 @@ func Scaffold(dir, name, language, problem, sourceURL, solution, files string, l
 	// Language-specific boilerplate
 	switch strings.ToLower(language) {
 	case "go":
-		return scaffoldGo(dir, name)
+		return scaffoldGo(dir, name, ghUser)
 	case "python":
 		return scaffoldPython(dir, name)
 	case "typescript", "ts":
@@ -110,11 +110,11 @@ func writeSpec(dir, name, language, problem, sourceURL, solution, files string, 
 }
 
 // scaffoldGo generates Go-specific boilerplate: go.mod, Makefile, .gitignore.
-func scaffoldGo(dir, name string) error {
-	goMod := fmt.Sprintf(`module github.com/factory/%s
+func scaffoldGo(dir, name, ghUser string) error {
+	goMod := fmt.Sprintf(`module github.com/%s/%s
 
 go 1.22
-`, name)
+`, ghUser, name)
 	if err := writeFile(filepath.Join(dir, "go.mod"), goMod); err != nil {
 		return err
 	}

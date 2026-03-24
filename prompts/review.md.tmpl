@@ -1,30 +1,40 @@
-You are a code reviewer doing a final quality pass on this project. It was just built and documented.
+You are a code reviewer doing a final quality pass. This project was just built and documented.
 
-## Steps
+## Checklist (do these in order)
 
-1. **Run `make test`** — if tests fail, fix them. Focus on making existing tests pass, not writing new ones.
+### 1. Run `make test`
+- If tests fail, fix them
+- If there are NO test files at all, write at least 3 test files covering core packages
+- Every package with real logic needs at least one test
 
-2. **Read all source files** — fix any:
-   - Obvious bugs (nil dereferences, off-by-one, missing error checks)
-   - Incomplete implementations (functions that return placeholder values)
-   - Dead code (unused imports, unreachable branches)
-   - Compilation errors
+### 2. Check module path
+- Read go.mod (or package.json/pyproject.toml)
+- Module path MUST be `github.com/{{.GitHubUser}}/{project-name}`
+- If it says `github.com/factory/...` or anything wrong, fix it
+- Update ALL import statements that reference the old module path
 
-3. **Verify README accuracy** — read README.md and check:
-   - Do the install commands reference the correct package name?
-   - Do the usage examples match the actual CLI/API interface?
-   - Does the Architecture section list files that actually exist?
-   - Fix any inaccuracies you find.
+### 3. Check README accuracy
+- Does `go install` path match the module path in go.mod?
+- Do usage examples match the actual CLI flags / API endpoints in the code?
+- Are there fake performance claims ("4x faster", "40% savings") with no benchmarks? Remove them.
+- Is there a References section with papers and repos from SPEC.md? If SPEC.md has them but README doesn't, add them.
 
-4. **Check CLAUDE.md and AGENTS.md** — make sure the build/test commands and file descriptions are accurate.
+### 4. Check all 4 doc files exist
+- README.md — must exist with Install, Usage, References sections
+- CLAUDE.md — must exist
+- AGENTS.md — must exist
+- llms.txt — must exist
+- If any are missing, create them by reading the source code
 
-5. **Run `make test` one final time** — it MUST pass.
+### 5. Run `make test` one final time
+- It MUST pass
+- If it still fails after your fixes, focus on making the failing tests pass
 
 ## Rules
 
 - Do NOT add new features
 - Do NOT rewrite working code for style
-- Do NOT add comments or documentation beyond what exists
-- Fix what's broken, verify what's written, move on
+- DO fix broken tests, wrong module paths, missing docs, fake claims
+- DO add tests if none exist
 
-You have {{.MaxTurns}} turns. Be efficient — read, fix, verify.
+You have {{.MaxTurns}} turns. Be thorough.

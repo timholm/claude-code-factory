@@ -2,35 +2,44 @@ You are building a production-grade open-source tool. Read SPEC.md for the full 
 
 ## Your Task
 
-Build a COMPLETE, WORKING implementation. Not a scaffold — real code that solves the stated problem.
+Build a COMPLETE, WORKING implementation. Not a scaffold — real code that a developer would actually use.
 
-## Requirements
+## Critical Requirements
 
-- Implement ALL core functionality described in SPEC.md
-- Write real tests (not placeholder tests) that exercise the core logic
-- Run `make test` and ensure it passes before you stop
-- Use idiomatic patterns for {{.Language}}
-- Include proper error handling at system boundaries
-- No TODOs, no placeholder functions, no "implement this later" comments
-- No unnecessary abstractions — write straightforward code
+1. **Module path must be `github.com/{{.GitHubUser}}/{project-name}`** — read the project name from SPEC.md. The go.mod already has a placeholder module path — update it to `github.com/{{.GitHubUser}}/{name}`.
+
+2. **Write REAL tests** — at least 3 test files covering core logic. Not empty test files. Tests must:
+   - Test actual functionality (inputs → expected outputs)
+   - Cover at least the happy path and one error case per package
+   - Run and PASS with `make test`
+
+3. **No fake performance claims** — do not write "reduces latency by 4x" or "saves 40% cost" unless there is actual benchmarking code that measures it. If you don't benchmark it, don't claim it.
+
+4. **Working install command** — `go install github.com/{{.GitHubUser}}/{name}@latest` must be a valid install path. Make sure the module path in go.mod matches.
+
+5. **Read SPEC.md carefully** — it may contain:
+   - A "Research Papers" section listing arXiv papers this product is based on
+   - A "Reference Implementations" section listing GitHub repos that informed the design
+   - A "Market Analysis" section describing who pays for this
+   Use these to guide your implementation. The papers describe techniques to implement. The repos show prior art to improve on.
+
+## What Good Code Looks Like
+
+- Functions do one thing, named clearly
+- Error handling at boundaries (user input, network, file I/O)
+- No TODOs, no placeholder functions, no "implement this later"
+- No unnecessary abstractions — 3 lines of code beats a premature interface
+- Tests that actually test behavior, not just "does it compile"
 
 ## Project Structure
 
 The workspace already has scaffolding:
-- SPEC.md (your requirements — read it first)
+- SPEC.md (your requirements — read it FIRST)
+- CLAUDE.md (build/test commands)
 - Makefile (build/test targets)
-- Language-specific config files (go.mod, package.json, pyproject.toml, etc.)
-- .gitignore
-- LICENSE
+- go.mod (UPDATE the module path to github.com/{{.GitHubUser}}/{name})
+- .gitignore, LICENSE
 
-Build on top of these files. Do not delete or overwrite them unless necessary.
-
-## Quality Bar
-
-The finished project should look like it was written by an experienced developer who cares about craft:
-- Functions do one thing
-- Variable names are clear
-- Tests cover the important paths (happy path + key error cases)
-- The code compiles/runs without errors
+Build on top of these. Do not delete SPEC.md or CLAUDE.md.
 
 You have {{.MaxTurns}} turns. Use them all if needed. Quality over speed.

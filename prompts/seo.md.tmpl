@@ -1,60 +1,66 @@
-You are adding LLM-discovery artifacts to an existing project. The code is already built and tested.
+You are adding documentation to an existing project. The code is already built and tested.
 
-**DO NOT modify any source code or test files.** Only create the documentation files listed below.
+**DO NOT modify any source code or test files.** Only create the 4 documentation files below.
 
-First, read all existing source files to understand what was built. Then create these files:
+First, read ALL existing source files AND SPEC.md to understand what was built. SPEC.md may contain Research Papers, Reference Implementations, and Market Analysis sections — you MUST include these in the README.
 
 ## 1. README.md
 
-Structured for both humans and AI agents:
-
-```
+```markdown
 # {Project Name}
 
 {One-line description — what it does, not how}
 
 ## What it does
 
-{2-3 sentences explaining the problem it solves and the approach}
+{2-3 sentences. Be specific about the technique used. Reference the research paper if mentioned in SPEC.md.}
 
 ## Install
 
-{Exact commands to install. Language-specific:
-- Go: go install github.com/{{.GitHubUser}}/{name}@latest
-- Python: pip install {name}
-- TypeScript: npm install {name}
-- Bash: curl/wget one-liner}
+go install github.com/{{.GitHubUser}}/{name}@latest
+
+Or build from source:
+
+git clone https://github.com/{{.GitHubUser}}/{name}.git
+cd {name}
+make build
 
 ## Usage
 
-{Real examples with expected output. At least 2 examples showing different features.}
+{At least 2 real examples with expected output. Must match the actual CLI/API from the code.}
 
 ## API
 
-{If it's a library: function signatures with param descriptions and return types.
-If it's a CLI: command syntax with flags.
-If it's a server: endpoint listing with request/response examples.}
+{CLI commands with flags, or HTTP endpoints with request/response, or library functions with signatures. Read the actual code — do not guess.}
 
 ## Architecture
 
-{Brief description of how the code is organized. List key files and what they do.
-This section is specifically for LLMs that need to understand the codebase quickly.}
+{List key packages/files and what they do. Read the actual directory structure.}
 
 ## References
 
-{If SPEC.md contains "Research Papers" or "Reference Implementations" sections, include them here.
-List each paper as: - [Paper Title](https://arxiv.org/abs/ID) — one-line description of the key technique used
-List each repo as: - [repo-name](URL) — one-line description of what was borrowed/improved
-If no references in SPEC.md, omit this section entirely.}
+### Research Papers
+
+{REQUIRED if SPEC.md has a "Research Papers" section. List each paper:}
+- [Paper Title](https://arxiv.org/abs/ID) — what technique from this paper is used in this project
+
+### Related Projects
+
+{REQUIRED if SPEC.md has a "Reference Implementations" section. List each repo:}
+- [repo-name](https://github.com/owner/repo) — what was learned from or improved upon
+
+### Market Analysis
+
+{REQUIRED if SPEC.md has a "Market Analysis" section. Include it verbatim or summarized.}
 
 ## License
 
 MIT
 ```
 
-## 2. llms.txt
+IMPORTANT: The References section is NOT optional. If SPEC.md has research papers and repos, they MUST appear in the README. This is how users understand where this project came from and why it exists.
 
-Follow the llms.txt standard (https://llmstxt.org):
+## 2. llms.txt
 
 ```
 # {Project Name}
@@ -64,63 +70,57 @@ Follow the llms.txt standard (https://llmstxt.org):
 ## Docs
 
 - [README](README.md): Overview, install, usage, API reference
-- [SPEC](SPEC.md): Original requirements and design
+- [SPEC](SPEC.md): Original requirements, research papers, reference repos
 {For each key source file:}
 - [{filename}]({path}): {What this file does}
 ```
 
 ## 3. CLAUDE.md
 
-Instructions for Claude Code working in this repo:
+Update the existing CLAUDE.md (don't overwrite if it has useful content). Add:
 
 ```
-# {Project Name}
-
-## Build & Test
-
-{Exact commands: make build, make test, make lint — whatever the Makefile supports}
-
 ## Architecture
 
-{How the code is organized — packages/modules, entry points, data flow}
+{How the code is organized — packages, entry points, data flow}
 
 ## Patterns
 
-{Key patterns used: error handling style, naming conventions, test patterns}
+{Error handling, naming conventions, test patterns used in this codebase}
 
 ## Common Tasks
 
-- Add a new feature: {where to add code, what to test}
-- Fix a bug: {how to reproduce, where to look}
-- Run tests: {exact command}
+- Add a feature: {where to add code}
+- Fix a bug: {where to look}
+- Run tests: make test
 ```
 
 ## 4. AGENTS.md
-
-Instructions for any AI coding agent (Copilot, Cursor, Codex, etc.):
 
 ```
 # {Project Name}
 
 ## Overview
 
-{What this project does — one paragraph}
+{One paragraph: what it does, who it's for}
 
 ## Quick Start
 
-{Build and test in 3 commands or less}
+make build
+make test
+./{binary} --help
 
 ## Key Files
 
-{List each file with a one-line description of its purpose}
+{List every source file with a one-line description}
 
 ## How to Extend
 
-{Where to add new functionality, what interfaces/patterns to follow}
+{Where to add functionality, what patterns to follow}
 
 ## Testing
 
-{How to run tests, how to add new tests, what the test strategy is}
+{How to run tests, how to add new tests}
 ```
 
-Read the source code carefully. Every example, API signature, and file description must match the actual implementation.
+Read the source code carefully. Every example, file path, and API signature MUST match the actual implementation. Do not hallucinate commands or endpoints.
