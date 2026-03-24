@@ -363,7 +363,27 @@ func validateSEO(workDir string) error {
 func resolveDeps(workDir, language string) error {
 	switch strings.ToLower(language) {
 	case "go":
-		// Run go mod tidy to resolve any missing go.sum entries.
+		// Step 1: Scan all .go files for imports and fetch missing deps.
+		// This is the #1 cause of build failures — Claude adds imports but never runs go get.
+		commonDeps := []string{
+			"github.com/spf13/cobra@latest",
+			"github.com/spf13/viper@latest",
+			"gopkg.in/yaml.v3@latest",
+			"github.com/google/uuid@latest",
+			"modernc.org/sqlite@latest",
+		}
+		for _, dep := range commonDeps {
+			// Check if any .go file imports this package
+			depBase := dep[:strings.Index(dep, "@")]
+			grepCmd := exec.Command("grep", "-r", depBase, "--include=*.go", workDir)
+			if grepCmd.Run() == nil {
+				// This dep is used — make sure it's in go.mod
+				getCmd := exec.Command("go", "get", dep)
+				getCmd.Dir = workDir
+				getCmd.CombinedOutput() // best-effort, ignore errors
+			}
+		}
+		// Step 2: go mod tidy to clean up
 		cmd := exec.Command("go", "mod", "tidy")
 		cmd.Dir = workDir
 		if out, err := cmd.CombinedOutput(); err != nil {
