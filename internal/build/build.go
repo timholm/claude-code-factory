@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
 	"text/template"
@@ -244,6 +245,11 @@ func processSpec(ctx context.Context, reg *registry.Registry, spec *registry.Bui
 	}
 	if err := gitInitBare(bareRepo); err != nil {
 		return handleFailure(reg, spec, fmt.Errorf("git init bare: %w", err))
+	}
+
+	// Scrub secrets before committing — Claude sometimes embeds real tokens.
+	if err := scrubSecrets(workDir); err != nil {
+		log.Printf("build: %s — secret scrub warning: %v", spec.Name, err)
 	}
 
 	// Commit and tag in workspace, then push to bare repo.
@@ -561,4 +567,39 @@ func truncate(s string, n int) string {
 		return s
 	}
 	return s[:n] + "..."
+}
+
+// scrubSecrets removes GitHub tokens, API keys, and other secrets from all files
+// before committing. Claude sometimes embeds real tokens in test fixtures or examples.
+func scrubSecrets(workDir string) error {
+	patterns := []*regexp.Regexp{
+		regexp.MustCompile(`ghp_[A-Za-z0-9]{36}`),
+		regexp.MustCompile(`github_pat_[A-Za-z0-9_]{82}`),
+		regexp.MustCompile(`gho_[A-Za-z0-9]{36}`),
+		regexp.MustCompile(`sk-ant-[A-Za-z0-9\-_]{40,}`),
+		regexp.MustCompile(`sk-[A-Za-z0-9]{48}`),
+	}
+
+	return filepath.Walk(workDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil || info.IsDir() || strings.Contains(path, "/.git/") || info.Size() > 1<<20 {
+			return nil
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return nil
+		}
+		content := string(data)
+		changed := false
+		for _, re := range patterns {
+			if re.MatchString(content) {
+				content = re.ReplaceAllString(content, "REDACTED_SECRET")
+				changed = true
+				log.Printf("build: scrubbed secret from %s", filepath.Base(path))
+			}
+		}
+		if changed {
+			return os.WriteFile(path, []byte(content), info.Mode())
+		}
+		return nil
+	})
 }
