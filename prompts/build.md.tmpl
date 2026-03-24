@@ -6,12 +6,21 @@ Build a COMPLETE, WORKING implementation. Not a scaffold — real code that a de
 
 ## Critical Requirements
 
-1. **Module path must be `github.com/{{.GitHubUser}}/{project-name}`** — read the project name from SPEC.md. The go.mod already has a placeholder module path — update it to `github.com/{{.GitHubUser}}/{name}`.
+1. **Check the language** — read SPEC.md for the language. Follow language-specific rules below.
 
-2. **Write REAL tests** — at least 3 test files covering core logic. Not empty test files. Tests must:
+2. **Write REAL tests** — at least 3 test files covering core logic. Not empty test files.
+
+   **Go tests:** Files named `*_test.go` in the same package. Run with `go test ./...`.
+   **Python tests:** Files named `test_*.py` in a `tests/` directory. Each test function starts with `test_`. Run with `python3 -m pytest`. Make sure pyproject.toml has `[tool.pytest.ini_options] testpaths = ["tests"]`.
+   **TypeScript tests:** Files named `*.test.ts`. Run with `npm test`.
+
+   Tests must:
    - Test actual functionality (inputs → expected outputs)
-   - Cover at least the happy path and one error case per package
+   - Cover at least the happy path and one error case per module
    - Run and PASS with `make test`
+   - **Python: verify `python3 -m pytest` collects >0 tests before your last turn**
+
+3. **Go projects only:** Module path must be `github.com/{{.GitHubUser}}/{project-name}`. Update go.mod.
 
 3. **No fake performance claims** — do not write "reduces latency by 4x" or "saves 40% cost" unless there is actual benchmarking code that measures it. If you don't benchmark it, don't claim it.
 
@@ -75,12 +84,24 @@ The workspace already has scaffolding:
 
 Build on top of these. Do not delete SPEC.md or CLAUDE.md.
 
+## Scope Management — DO NOT TRY TO BUILD EVERYTHING
+
+SPEC.md may list 30+ expected files. **You do NOT need to create all of them.** Focus on:
+1. The CORE functionality (the main algorithm/technique from the paper)
+2. A working CLI entry point (main.go / cli.py / index.ts)
+3. At least 3 test files that PASS
+4. Working `make test`
+
+A product with 5 solid files that compiles and passes tests is infinitely better than 30 skeleton files that crash on import.
+
 ## Build Checklist — Do These Before Your Final Turn
 
-1. All source files written with real implementation (no TODOs)
+1. Core functionality works (not all features — just the CORE)
 2. All external dependencies resolved (`go mod tidy` / `pip install` / `npm install`)
 3. `make test` passes with all tests green
-4. Module path in go.mod matches `github.com/{{.GitHubUser}}/{name}`
-5. At least 3 test files exist with meaningful assertions
+4. At least 3 test files exist with meaningful assertions
+5. **Python: run `python3 -m pytest` and confirm it collects AND passes tests**
+6. **Go: module path matches `github.com/{{.GitHubUser}}/{name}`**
+7. No broken imports (every import resolves to an actual file)
 
 You have {{.MaxTurns}} turns. Use them all if needed. Quality over speed.
