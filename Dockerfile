@@ -24,10 +24,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-pip \
     python3-venv \
     gcc \
-    golang \
     g++ \
     && pip3 install --break-system-packages pytest ruff \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Go 1.22 from official tarball (debian package is 1.19 — too old)
+RUN curl -fsSL https://go.dev/dl/go1.22.12.linux-arm64.tar.gz | tar -C /usr/local -xzf -
+ENV PATH="/usr/local/go/bin:${PATH}"
+ENV GOPATH="/tmp/go"
 
 # Install Node.js 22 via nodesource
 RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
