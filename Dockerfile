@@ -12,13 +12,20 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o factory ./cmd/factory
 # Stage 2: Runtime
 FROM debian:bookworm-slim
 
-# Install base dependencies
+# Install base dependencies + build tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     openssh-client \
     curl \
     ca-certificates \
     gnupg \
+    make \
+    python3 \
+    python3-pip \
+    python3-venv \
+    gcc \
+    g++ \
+    && pip3 install --break-system-packages pytest ruff \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Node.js 22 via nodesource
